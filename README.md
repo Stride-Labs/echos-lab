@@ -50,7 +50,7 @@ See `requirements.txt` for full dependency list
 ```bash ./install_requirements.sh```
 
 2. Set up environment variables:
-Create a `.env` file in the echos_lab directory with necessary credentials for:
+Run ```cp .env.example .env``` ro create a `.env` file in the echos_lab directory with necessary credentials for:
 - Twitter username / password
 - Telegram bot token and API credentials
 - Anthropic API key (for AI model functionality)
