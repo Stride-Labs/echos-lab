@@ -50,14 +50,17 @@ See `requirements.txt` for full dependency list
 ```bash ./install_requirements.sh```
 
 2. Set up environment variables:
-Create a `.env` file in the tee_stride directory with necessary credentials for:
+Create a `.env` file in the echos_lab directory with necessary credentials for:
 - Twitter username / password
 - Telegram bot token and API credentials
 - Anthropic API key (for AI model functionality)
 - Openpipe API token (for additional AI finetuning functionality)
 - Replicate API token (for image generation)
 
-3. Initialize the bot:
+3. Add `echos-lab` to your `PYTHONPATH`. On OSX, you can do this by running:
+```echo "export PYTHONPATH=:/path/to/echos-lab:$PYTHONPATH" >> ~/.zshrc```
+
+4. Initialize the bot:
 ```bash ./init_bot.sh```
 
 ### Project Structure

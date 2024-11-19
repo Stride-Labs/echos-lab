@@ -14,7 +14,9 @@ load_dotenv(f"{BASE_PATH}/../.env")
 
 ACCOUNT_PATH = os.getenv("CRYPTO_ACCOUNT_PATH", "")
 if ACCOUNT_PATH == "":
-    ACCOUNT_PATH = f"{BASE_PATH}/account.json"
+    ACCOUNT_PATH = f"{BASE_PATH}/data/account.json"
+# create folders if needed
+os.makedirs(os.path.dirname(ACCOUNT_PATH), exist_ok=True)
 
 CHAIN_ID = int(os.getenv("CHAIN_ID", "1"))
 if CHAIN_ID == 1:

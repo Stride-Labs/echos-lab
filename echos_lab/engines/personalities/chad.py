@@ -31,7 +31,7 @@ PREFERENCES = """
 EXTRA_PROMPT = """
 """
 
-TOOLS_TO_EXCLUDE = []
-TOOLS_TO_INCLUDE = []
+TOOLS_TO_EXCLUDE = ["construct_specialized_llm_tweet"]
+TOOLS_TO_INCLUDE = ["construct_viral_tweet"]
 
 IMAGE_TAGS = "bright colors, fun, playful"
