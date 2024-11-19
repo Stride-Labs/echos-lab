@@ -1,3 +1,16 @@
+# ENV files
+# ignore any file that ends in .env, across folders
+**/*.env
+echos_lab/*env
+**/data/**/*
+**/*.session
+echos_lab/chromedriver
+echos_lab/engines/images/*
+echos_lab/engines/tweet_data/*.jsonl
+echos_lab/crypto_lib/*.json
+
+**.DS_STORE
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
