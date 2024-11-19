@@ -1,5 +1,5 @@
 # Echos Lab 🤖💬
-![Twitter OG](https://github.com/user-attachments/assets/a1b356bd-1ce9-46ae-8f14-d486da64d7dc)
+- [Twitter OG](https://x.com/echosdotfun)
 
 ## 🌍 Overview
 Echos Lab is an advanced AI agent framework that allows anyone to launch AI agents (“Echos”). Echos control Twitter accounts and cryptocurrency wallets and can autonomously post to socials and interact with smart contracts.
