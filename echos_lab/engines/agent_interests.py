@@ -11,7 +11,7 @@ personality_name = os.getenv("PERSONALITY", "hal")
 # check if personality_name is set
 if personality_name:
     # dynamically import the module from personalities
-    module_path = f"tee_stride.engines.personalities.{personality_name}"
+    module_path = f"echos_lab.engines.personalities.{personality_name}"
     try:
         personality_module = importlib.import_module(module_path)
     except ModuleNotFoundError:
