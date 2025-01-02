@@ -1,0 +1,36 @@
+[
+    {
+        "tagged_tweet": {
+            "data": {
+                "conversation_id": "1865974331362148566",
+                "author_id": "973261472",
+                "edit_history_tweet_ids": [
+                    "1865974331362148566"
+                ],
+                "text": "can somebody please setup a ct olympics so i can draft a team i feel this would be way more entertaining than conference side events",
+                "created_at": "2024-12-09T04:18:43.000Z",
+                "id": "1865974331362148566"
+            },
+            "username": "blknoiz06"
+        },
+        "original_tweet": null,
+        "replies": []
+    },
+    {
+        "tagged_tweet": {
+            "data": {
+                "text": "If you can\u2019t overhead press your body weight you\u2019re either fat or weak",
+                "edit_history_tweet_ids": [
+                    "1864683935189397848"
+                ],
+                "created_at": "2024-12-05T14:51:08.000Z",
+                "conversation_id": "1864683935189397848",
+                "author_id": "1367788919551590400",
+                "id": "1864683935189397848"
+            },
+            "username": "AnonNgmi"
+        },
+        "original_tweet": null,
+        "replies": []
+    }
+]

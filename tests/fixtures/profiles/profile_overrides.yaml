@@ -1,0 +1,4 @@
+tweet_analysis_prompt: "Overriding tweet analysis prompt"
+tweet_reply_prompt: "Overriding tweet reply prompt"
+subtweet_analysis_prompt: "Overriding subtweet analysis prompt"
+subtweet_creation_prompt: "Overriding subtweet creation prompt"
