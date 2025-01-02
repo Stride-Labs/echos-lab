@@ -9,7 +9,7 @@ from echos_lab.common.env import get_env_or_raise
 from echos_lab.common.logger import logger
 from echos_lab.crypto_lib import crypto_connector
 from echos_lab.db import db_connector, db_setup
-from echos_lab.engines import full_agent, image_creator, post_maker
+from echos_lab.engines import full_agent, images, post_maker
 from echos_lab.engines.personalities import profiles
 from echos_lab.engines.personalities.profiles import AgentProfile, LegacyAgentProfile
 from echos_lab.slack.client import SlackClient
@@ -34,7 +34,7 @@ async def setup_legacy_app() -> LegacyAgentProfile:
 
     db_setup.init_db()
     crypto_connector.get_account()
-    image_creator.validate_image_envs()
+    images.validate_image_envs()
 
     # Ensure the agent's username is stored in the database
     with db_setup.get_db() as db:
