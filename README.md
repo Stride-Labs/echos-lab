@@ -86,8 +86,9 @@ This will install `echos_lab` as a local package and install all necessary depen
 Key Components:
 `crypto_lib/`: handles all cryptocurrency operations including trading, token creation, and price tracking
 `engines/`: core AI logic and decision making, manages bot personality and responses
-`telegram_lib/`: telegram bot operations (direct message and group interactions)
+`telegram/`: telegram bot operations (direct message and group interactions)
 `twitter/`: twitter automation and social media interactions
+`slack/`: custom slack triggers and integrations
 `db/`: conversation history storage
 
 Configuration Files:
