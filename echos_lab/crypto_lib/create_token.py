@@ -5,14 +5,14 @@ from eth_account.signers.local import LocalAccount
 from echos_lab.crypto_lib import abis
 from echos_lab.crypto_lib import crypto_helpers as ch
 from echos_lab.crypto_lib import query_balances
-from echos_lab.engines import image_creator
+from echos_lab.engines import images
 from echos_lab.engines.personalities.profiles import LegacyAgentProfile
 
 
 def try_creating_image(symbol: str, name: str, description: str, image_attributes, num_tries=3) -> str:
     for _ in range(num_tries):
         try:
-            return image_creator.generate_and_upload(symbol, name, description, image_attributes)
+            return images.generate_and_upload(symbol, name, description, image_attributes)
         except Exception as e:
             print(f"Error creating image: {e}")
             time.sleep(5)

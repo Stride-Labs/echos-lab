@@ -8,7 +8,6 @@ from echos_lab.crypto_lib import create_token, crypto_connector
 from echos_lab.db import db_setup
 from echos_lab.engines import (
     context_store,
-    follow_user,
     memes,
     post_maker,
     post_retriever,
@@ -312,7 +311,7 @@ def like_twitter_post(post_id: str) -> bool:
     - bool: True if the post was successfully liked, False otherwise
     """
     account = twitter_connector.get_twitter_account()
-    out = follow_user.like_post(account, post_id)
+    out = account.like(int(post_id))
     try:
         if out['data']['favorite_tweet'] == 'Done':
             return True
@@ -337,7 +336,7 @@ async def follow_twitter_user(username: str) -> bool:
     account = twitter_connector.get_twitter_account()
     target = await twitter_connector.get_user_id_from_username(username=username)
     if target:
-        out = follow_user.follow_user(account, target)
+        out = account.follow(target)
         print(out)
         return True
     return False

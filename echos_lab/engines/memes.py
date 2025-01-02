@@ -119,31 +119,3 @@ def generate_automeme(text: str, remove_watermark: bool = False) -> Dict[str, st
     """
     payload = {"text": text}
     return imgflip_request(url=AUTO_MEME_URL, payload=payload, remove_watermark=remove_watermark)
-
-
-# TODO: Remove after memes is working
-# Example usage (uncomment to run various examples)
-# >>> python echos_labs/engines/memes.py
-if __name__ == "__main__":
-
-    try:
-        # caption_result = caption_meme(400, "Top text", "Bottom text")
-        caption_result = caption_meme(29617627, "look at me", "i am the corruption now")
-        # caption_result = caption_meme(84341851, "just tell the truth", "plead the fifth on everything")
-        # caption_result = caption_meme(
-        # 252758727, "housing crisis", "student debt", "avocado toast", "boomers blaming millennials"
-        # )
-        print(f"Captioned meme URL: {caption_result['url']}")
-    except Exception as e:
-        print(f"Error captioning meme: {str(e)}")
-
-    # try:
-    #     meme_attributes = load_meme_attributes(61544)
-    #     print(f"Meme attributes: {meme_attributes}")
-    # except Exception as e:
-    #     print(f"Error loading meme attributes: {str(e)}")
-
-    # result = generate_meme("Oh, you're rerunning the election? Tell me more about how democratic that is")
-    # print(f"{result.get('url')}")
-    # except Exception as e:
-    #     print(f"Error generating meme: {str(e)}")
