@@ -7,7 +7,7 @@ from telethon.tl.types import ChatBannedRights
 from echos_lab.common.env import EnvironmentVariables as envs
 from echos_lab.common.env import get_env_or_raise
 from echos_lab.common.logger import logger
-from echos_lab.telegram_lib import telegram_connector
+from echos_lab.telegram import telegram_connector
 
 
 async def create_group_with_admins(

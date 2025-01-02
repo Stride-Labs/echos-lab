@@ -15,7 +15,7 @@ from echos_lab.engines import (
 )
 from echos_lab.engines.personalities import profiles
 from echos_lab.engines.prompts import TweetEvaluation
-from echos_lab.telegram_lib import telegram_connector
+from echos_lab.telegram import telegram_connector
 from echos_lab.twitter import (
     twitter_client,
     twitter_connector,

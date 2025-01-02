@@ -13,7 +13,7 @@ from echos_lab.engines import full_agent, image_creator, post_maker
 from echos_lab.engines.personalities import profiles
 from echos_lab.engines.personalities.profiles import AgentProfile, LegacyAgentProfile
 from echos_lab.slack_lib.client import SlackClient
-from echos_lab.telegram_lib import telegram_connector
+from echos_lab.telegram import telegram_connector
 from echos_lab.twitter import (
     twitter_client,
     twitter_connector,
