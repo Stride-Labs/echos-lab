@@ -10,7 +10,7 @@ from echos_lab.common.utils import wrap_xml_tag
 from echos_lab.engines import prompts
 from echos_lab.engines.agent_context import AgentContext
 from echos_lab.engines.prompts import XMLAttributeParser
-from echos_lab.twitter_lib.types import TweetMention
+from echos_lab.twitter.types import TweetMention
 
 
 @pytest.mark.asyncio

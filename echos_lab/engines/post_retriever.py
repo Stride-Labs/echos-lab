@@ -5,7 +5,7 @@ from twitter.account import Account
 from twitter.scraper import Scraper
 
 from echos_lab.db.models import Tweet
-from echos_lab.twitter_lib import twitter_connector
+from echos_lab.twitter import twitter_connector
 
 NUM_POSTS = 40
 

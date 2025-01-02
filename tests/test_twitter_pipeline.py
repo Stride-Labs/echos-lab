@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 
 from echos_lab.db import db_connector, models
 from echos_lab.db.models import QueryType
-from echos_lab.twitter_lib import twitter_pipeline
-from echos_lab.twitter_lib.types import TweetExclusions
+from echos_lab.twitter import twitter_pipeline
+from echos_lab.twitter.types import TweetExclusions
 
 
 @pytest.mark.asyncio
@@ -22,7 +22,7 @@ class TestGetUserIdFromUsername:
         db_connector.add_twitter_user(db, user_id=user_id, username=username)
         assert await twitter_pipeline.get_user_id_from_username(db, username) == user_id
 
-    @patch("echos_lab.twitter_lib.twitter_client.get_user_id_from_username")
+    @patch("echos_lab.twitter.twitter_client.get_user_id_from_username")
     async def test_get_user_id_from_username_not_in_db(self, mock_get_user_id: AsyncMock, db: Session):
         """
         Tests fetching a user ID from a username when the user is NOT in the database
@@ -48,7 +48,7 @@ class TestGetUsernameFromId:
         db_connector.add_twitter_user(db, user_id=user_id, username=username)
         assert await twitter_pipeline.get_username_from_user_id(db, user_id) == username
 
-    @patch("echos_lab.twitter_lib.twitter_client.get_username_from_user_id")
+    @patch("echos_lab.twitter.twitter_client.get_username_from_user_id")
     async def test_get_username_from_user_id_not_in_db(self, mock_get_username: AsyncMock, db: Session):
         """
         Tests fetching a username from a user ID when the user is NOT in the database
@@ -134,7 +134,7 @@ class TestCheckpoint:
         assert checkpoint2 and checkpoint2.last_tweet_id == 888
         assert checkpoint3 and checkpoint3.last_tweet_id == 999
 
-    @patch("echos_lab.twitter_lib.twitter_client.get_username_from_user_id")
+    @patch("echos_lab.twitter.twitter_client.get_username_from_user_id")
     async def test_update_checkpoint_no_user(self, mock_get_username: AsyncMock, db: Session):
         """
         Tests trying to update the checkpoint when the userID does not exist
@@ -150,7 +150,7 @@ class TestCheckpoint:
 
 @pytest.mark.asyncio
 class TestGetTweetFromTweetId:
-    @patch("echos_lab.twitter_lib.twitter_client.get_tweet_from_tweet_id")
+    @patch("echos_lab.twitter.twitter_client.get_tweet_from_tweet_id")
     async def test_get_tweet_from_tweet_id_in_db(self, mock_get_tweet: AsyncMock, db: Session):
         """
         Tests fetching a tweet from the tweet ID when it's already in the database
@@ -168,7 +168,7 @@ class TestGetTweetFromTweetId:
         # Confirm the API was never called
         mock_get_tweet.assert_not_called()
 
-    @patch("echos_lab.twitter_lib.twitter_client.get_tweet_from_tweet_id")
+    @patch("echos_lab.twitter.twitter_client.get_tweet_from_tweet_id")
     async def test_tweet_id_not_in_db(self, mock_get_tweet: AsyncMock, db: Session):
         """
         Tests fetching a tweet from the tweet ID when it's not in the database
@@ -192,8 +192,8 @@ class TestGetTweetFromTweetId:
         # Confirm the API was called
         mock_get_tweet.assert_called_once()
 
-    @patch("echos_lab.twitter_lib.twitter_client.get_username_from_user_id")
-    @patch("echos_lab.twitter_lib.twitter_client.get_tweet_from_tweet_id")
+    @patch("echos_lab.twitter.twitter_client.get_username_from_user_id")
+    @patch("echos_lab.twitter.twitter_client.get_tweet_from_tweet_id")
     async def test_user_not_in_db(self, mock_get_tweet: AsyncMock, mock_get_username: AsyncMock, db: Session):
         """
         Tests fetching a tweet from the tweet ID when it's not in the database
@@ -221,7 +221,7 @@ class TestGetTweetFromTweetId:
         mock_get_tweet.assert_called_once()
         mock_get_username.assert_called_once()
 
-    @patch("echos_lab.twitter_lib.twitter_client.get_tweet_from_tweet_id")
+    @patch("echos_lab.twitter.twitter_client.get_tweet_from_tweet_id")
     async def test_get_tweet_from_tweet_id_not_found(self, mock_get_tweet: AsyncMock, db: Session):
         """
         Tests fetching a tweet where it's not in the DB nor the API
@@ -240,7 +240,7 @@ class TestGetTweetFromTweetId:
 
 @pytest.mark.asyncio
 class TestUserLatestTweets:
-    @patch("echos_lab.twitter_lib.twitter_client.get_tweets_from_user_id")
+    @patch("echos_lab.twitter.twitter_client.get_tweets_from_user_id")
     async def test_get_user_latest_tweets_with_checkpoint(self, mock_get_tweets: AsyncMock, db: Session):
         """
         Tests querying tweets for a user since the last checkpoint
@@ -281,7 +281,7 @@ class TestUserLatestTweets:
         checkpoint = twitter_pipeline.get_checkpoint(db, agent, user_id, query_type=QueryType.USER_TWEETS)
         assert checkpoint and checkpoint.last_tweet_id == new_tweet_ids[-1]
 
-    @patch("echos_lab.twitter_lib.twitter_client.get_tweets_from_user_id")
+    @patch("echos_lab.twitter.twitter_client.get_tweets_from_user_id")
     async def test_get_user_latest_tweets_no_checkpoint(self, mock_get_tweets: AsyncMock, db: Session):
         """
         Tests querying tweets for a user when there are no checkpoints found
@@ -318,7 +318,7 @@ class TestUserLatestTweets:
         checkpoint = twitter_pipeline.get_checkpoint(db, agent, user_id, query_type=QueryType.USER_TWEETS)
         assert checkpoint and checkpoint.last_tweet_id == new_tweet_ids[-1]
 
-    @patch("echos_lab.twitter_lib.twitter_client.get_tweets_from_user_id")
+    @patch("echos_lab.twitter.twitter_client.get_tweets_from_user_id")
     async def test_get_user_latest_tweets_from_username(self, mock_get_tweets: AsyncMock, db: Session):
         """
         Tests querying tweets for a user from the username
@@ -354,7 +354,7 @@ class TestUserLatestTweets:
         checkpoint = twitter_pipeline.get_checkpoint(db, agent, user_id, query_type=QueryType.USER_TWEETS)
         assert checkpoint and checkpoint.last_tweet_id == new_tweet_ids[-1]
 
-    @patch("echos_lab.twitter_lib.twitter_client.get_tweets_from_user_id")
+    @patch("echos_lab.twitter.twitter_client.get_tweets_from_user_id")
     async def test_get_user_latest_tweets_exclusions(self, mock_get_tweets: AsyncMock, db: Session):
         """
         Tests querying tweets for a user with exclusions
@@ -407,7 +407,7 @@ class TestAddTwitterUser:
         assert user
         assert user.username == username
 
-    @patch("echos_lab.twitter_lib.twitter_client.get_username_from_user_id")
+    @patch("echos_lab.twitter.twitter_client.get_username_from_user_id")
     async def test_user_id_only(self, mock_get_username: AsyncMock, db: Session):
         """
         Tests adding a new user while specifying the user_id only and querying the username
@@ -422,7 +422,7 @@ class TestAddTwitterUser:
         assert user
         assert user.username == username
 
-    @patch("echos_lab.twitter_lib.twitter_client.get_user_id_from_username")
+    @patch("echos_lab.twitter.twitter_client.get_user_id_from_username")
     async def test_username_only(self, mock_get_user_id: AsyncMock, db: Session):
         """
         Tests adding a new user while specifying the username only and querying the user ID
@@ -437,8 +437,8 @@ class TestAddTwitterUser:
         assert user
         assert user.username == username
 
-    @patch("echos_lab.twitter_lib.twitter_client.get_username_from_user_id")
-    @patch("echos_lab.twitter_lib.twitter_client.get_user_id_from_username")
+    @patch("echos_lab.twitter.twitter_client.get_username_from_user_id")
+    @patch("echos_lab.twitter.twitter_client.get_user_id_from_username")
     async def test_user_not_found(self, mock_get_username: AsyncMock, mock_get_user_id: AsyncMock, db: Session):
         """
         Tests adding a new user when the user cannot be found
@@ -455,7 +455,7 @@ class TestAddTwitterUser:
 
 @pytest.mark.asyncio
 class TestUserMentions:
-    @patch("echos_lab.twitter_lib.twitter_client.get_all_user_mentions")
+    @patch("echos_lab.twitter.twitter_client.get_all_user_mentions")
     async def test_get_user_mentions_with_checkpoint(self, mock_get_mentions: AsyncMock, db: Session):
         """
         Tests querying for user mentions since the last checkpoint
@@ -496,7 +496,7 @@ class TestUserMentions:
         checkpoint = twitter_pipeline.get_checkpoint(db, agent, user_id, query_type=QueryType.USER_MENTIONS)
         assert checkpoint and checkpoint.last_tweet_id == new_tweet_ids[-1]
 
-    @patch("echos_lab.twitter_lib.twitter_client.get_all_user_mentions")
+    @patch("echos_lab.twitter.twitter_client.get_all_user_mentions")
     async def test_get_user_mentions_no_checkpoint(self, mock_get_mentions: AsyncMock, db: Session):
         """
         Tests querying for user mentions when there are no checkpoints found

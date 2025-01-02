@@ -12,7 +12,7 @@ from echos_lab.db.models import (
     TweetType,
     TwitterUser,
 )
-from echos_lab.twitter_lib.types import ReferenceTypes
+from echos_lab.twitter.types import ReferenceTypes
 
 
 def add_telegram_message(db: Session, username: str, message: str, chat_id: int) -> TelegramMessage:

@@ -25,13 +25,13 @@ from tweepy.asynchronous import AsyncClient
 from echos_lab.db import db_connector
 from echos_lab.engines import prompts
 from echos_lab.engines.personalities.profiles import FollowedAccount
-from echos_lab.twitter_lib import twitter_client
-from echos_lab.twitter_lib.types import HydratedTweet, TweetMention
+from echos_lab.twitter import twitter_client
+from echos_lab.twitter.types import HydratedTweet, TweetMention
 
 
 @pytest.mark.asyncio
 class TestHydratedTweet:
-    @patch("echos_lab.twitter_lib.twitter_client.get_username_from_user_id")
+    @patch("echos_lab.twitter.twitter_client.get_username_from_user_id")
     async def test_hydrated_tweet(self, mock_get_username: AsyncMock):
         """
         Tests the username lookup from a hydrated tweet
@@ -399,7 +399,7 @@ class TestGetTweetsFromUserId:
 
 @pytest.mark.asyncio
 class TestGetUserIdsFromUsernames:
-    @patch("echos_lab.twitter_lib.twitter_client.get_user_id_from_username")
+    @patch("echos_lab.twitter.twitter_client.get_user_id_from_username")
     async def test_get_user_ids_from_usernames_success(self, mock_get_user_id: AsyncMock, db: Session):
         """
         Tests successfully gathering user IDs from usernames
@@ -425,7 +425,7 @@ class TestGetUserIdsFromUsernames:
         # Confirm the API was only called once
         mock_get_user_id.assert_called_once()
 
-    @patch("echos_lab.twitter_lib.twitter_client.get_user_id_from_username")
+    @patch("echos_lab.twitter.twitter_client.get_user_id_from_username")
     async def test_get_user_ids_from_usernames_not_found(self, mock_get_user_id: AsyncMock, db: Session):
         """
         Tests handling of missing user ID
@@ -443,7 +443,7 @@ class TestGetUserIdsFromUsernames:
 
 @pytest.mark.asyncio
 class TestGetAllFollowerTweets:
-    @patch("echos_lab.twitter_lib.twitter_pipeline.get_user_latest_tweets")
+    @patch("echos_lab.twitter.twitter_pipeline.get_user_latest_tweets")
     async def test_get_all_follower_tweets_success(self, mock_get_user_tweets: AsyncMock, db: Session):
         """
         Tests retrieving tweets from multiple followers
@@ -489,7 +489,7 @@ class TestGetAllFollowerTweets:
 
 @pytest.mark.asyncio
 class TestGetParentTweets:
-    @patch("echos_lab.twitter_lib.twitter_client.get_tweet_from_tweet_id")
+    @patch("echos_lab.twitter.twitter_client.get_tweet_from_tweet_id")
     async def test_get_parent_tweet(self, mock_get_tweet: AsyncMock):
         """
         Tests fetching the parent tweet with a successful response
@@ -543,7 +543,7 @@ class TestGetParentTweets:
         expected_parent = await twitter_client.get_parent_tweet(reply_tweet)
         assert expected_parent is None
 
-    @patch("echos_lab.twitter_lib.twitter_client.get_tweet_from_tweet_id")
+    @patch("echos_lab.twitter.twitter_client.get_tweet_from_tweet_id")
     async def test_get_parent_tweets(self, mock_get_tweet: AsyncMock):
         """
         Tests fetching all parent tweets in a thread
@@ -576,7 +576,7 @@ class TestGetParentTweets:
 
 @pytest.mark.asyncio
 class TestEnrichUserMention:
-    @patch("echos_lab.twitter_lib.twitter_client.get_username_from_user_id")
+    @patch("echos_lab.twitter.twitter_client.get_username_from_user_id")
     async def test_enrich_user_mention_no_parent(self, mock_get_username: AsyncMock):
         """
         Tests successfully enriching a tweet mention when there was no parent tweet
@@ -602,8 +602,8 @@ class TestEnrichUserMention:
         actual_mention = await twitter_client.enrich_user_mention(original_tweet)
         check_tweet_mention_equality(actual_mention, expected_mention)
 
-    @patch("echos_lab.twitter_lib.twitter_client.get_tweet_from_tweet_id")
-    @patch("echos_lab.twitter_lib.twitter_client.get_username_from_user_id")
+    @patch("echos_lab.twitter.twitter_client.get_tweet_from_tweet_id")
+    @patch("echos_lab.twitter.twitter_client.get_username_from_user_id")
     async def test_enrich_user_mention_one_parent(self, mock_get_username: AsyncMock, mock_get_tweet: AsyncMock):
         """
         Tests successfully enriching a tweet mention when there was one parent tweet
@@ -637,8 +637,8 @@ class TestEnrichUserMention:
         actual_mention = await twitter_client.enrich_user_mention(reply_tweet)
         check_tweet_mention_equality(actual_mention, expected_mention)
 
-    @patch("echos_lab.twitter_lib.twitter_client.get_tweet_from_tweet_id")
-    @patch("echos_lab.twitter_lib.twitter_client.get_username_from_user_id")
+    @patch("echos_lab.twitter.twitter_client.get_tweet_from_tweet_id")
+    @patch("echos_lab.twitter.twitter_client.get_username_from_user_id")
     async def test_enrich_user_mention_long_thread(self, mock_get_username: AsyncMock, mock_get_tweet: AsyncMock):
         """
         Tests successfully enriching a tweet mention when there were multiple parent tweets
@@ -678,8 +678,8 @@ class TestEnrichUserMention:
         actual_mention = await twitter_client.enrich_user_mention(reply_tweet)
         check_tweet_mention_equality(actual_mention, expected_mention)
 
-    @patch("echos_lab.twitter_lib.twitter_client.get_tweet_from_tweet_id")
-    @patch("echos_lab.twitter_lib.twitter_client.get_username_from_user_id")
+    @patch("echos_lab.twitter.twitter_client.get_tweet_from_tweet_id")
+    @patch("echos_lab.twitter.twitter_client.get_username_from_user_id")
     async def test_enrich_user_mention_username_not_found(
         self,
         mock_get_username: AsyncMock,
@@ -720,7 +720,7 @@ class TestEnrichUserMention:
 
 @pytest.mark.asyncio
 class TestGetUserMentions:
-    @patch("echos_lab.twitter_lib.twitter_client.enrich_user_mention")
+    @patch("echos_lab.twitter.twitter_client.enrich_user_mention")
     async def test_get_user_mentions_batch_success(self, mock_enrich: AsyncMock, mock_client: type[AsyncClient]):
         """
         Tests successfully getting a batch of mentions
@@ -779,7 +779,7 @@ class TestGetUserMentions:
         )
         assert result is None
 
-    @patch("echos_lab.twitter_lib.twitter_client.get_user_mentions_batch")
+    @patch("echos_lab.twitter.twitter_client.get_user_mentions_batch")
     async def test_get_all_user_mentions_one_partial_batch(self, mock_get_mentions: AsyncMock):
         """
         Tests calling get all user mentions when there's only one batch request
@@ -810,7 +810,7 @@ class TestGetUserMentions:
         mock_get_mentions.assert_called_once()
         assert mock_get_mentions.call_args.kwargs["since_tweet_id"] is None
 
-    @patch("echos_lab.twitter_lib.twitter_client.get_user_mentions_batch")
+    @patch("echos_lab.twitter.twitter_client.get_user_mentions_batch")
     async def test_get_all_user_mentions_one_full_batch(self, mock_get_mentions: AsyncMock):
         """
         Tests calling get all user mentions when there's two requests called
@@ -847,7 +847,7 @@ class TestGetUserMentions:
         assert mock_get_mentions.call_args_list[0].kwargs["since_tweet_id"] is None
         assert mock_get_mentions.call_args_list[1].kwargs["since_tweet_id"] == latest_tweet_id
 
-    @patch("echos_lab.twitter_lib.twitter_client.get_user_mentions_batch")
+    @patch("echos_lab.twitter.twitter_client.get_user_mentions_batch")
     async def test_get_all_user_mentions_multiple_batches(self, mock_get_mentions: AsyncMock):
         """
         Tests calling get all user mentions when multiple batches were requested
@@ -887,7 +887,7 @@ class TestGetUserMentions:
         assert mock_get_mentions.call_args_list[0].kwargs["since_tweet_id"] is None
         assert mock_get_mentions.call_args_list[1].kwargs["since_tweet_id"] == latest_tweet_id_1
 
-    @patch("echos_lab.twitter_lib.twitter_client.get_user_mentions_batch")
+    @patch("echos_lab.twitter.twitter_client.get_user_mentions_batch")
     async def test_get_all_user_mentions_no_data(self, mock_get_mentions: AsyncMock):
         """
         Tests calling get all user mentions with no data returned from the first request
@@ -912,7 +912,7 @@ class TestGetUserMentions:
 @pytest.mark.asyncio
 class TestPostTweetResponse:
     @patch("echos_lab.engines.full_agent_tools.caption_meme_from_tweet_evaluation")
-    @patch("echos_lab.twitter_lib.twitter_client.reply_to_tweet_with_image")
+    @patch("echos_lab.twitter.twitter_client.reply_to_tweet_with_image")
     async def test_post_tweet_response_meme(
         self, mock_reply_with_image: AsyncMock, mock_caption_meme: AsyncMock, mock_client: type[AsyncClient]
     ):
@@ -948,7 +948,7 @@ class TestPostTweetResponse:
 
     @patch("random.random")
     @patch("echos_lab.engines.full_agent_tools.caption_meme_from_tweet_evaluation")
-    @patch("echos_lab.twitter_lib.twitter_client.post_tweet")
+    @patch("echos_lab.twitter.twitter_client.post_tweet")
     async def test_post_tweet_response_meme_failed(
         self,
         mock_post: AsyncMock,
@@ -992,8 +992,8 @@ class TestPostTweetResponse:
             in_reply_to_tweet_id=tweet_id,
         )
 
-    @patch("echos_lab.twitter_lib.twitter_client.post_tweet")
-    @patch("echos_lab.twitter_lib.twitter_client.has_high_follower_count")
+    @patch("echos_lab.twitter.twitter_client.post_tweet")
+    @patch("echos_lab.twitter.twitter_client.has_high_follower_count")
     async def test_post_tweet_response_no_tweet(self, mock_has_high_follower_count: AsyncMock, mock_post: AsyncMock):
         """
         Tests posting a tweet response where both responses are below
@@ -1021,8 +1021,8 @@ class TestPostTweetResponse:
         mock_post.assert_not_called()
 
     @patch("random.random")
-    @patch("echos_lab.twitter_lib.twitter_client.post_tweet")
-    @patch("echos_lab.twitter_lib.twitter_client.has_high_follower_count")
+    @patch("echos_lab.twitter.twitter_client.post_tweet")
+    @patch("echos_lab.twitter.twitter_client.has_high_follower_count")
     async def test_post_tweet_response_text_reply(
         self,
         mock_has_high_follower_count: AsyncMock,
@@ -1064,8 +1064,8 @@ class TestPostTweetResponse:
         )
 
     @patch("random.random")
-    @patch("echos_lab.twitter_lib.twitter_client.post_tweet")
-    @patch("echos_lab.twitter_lib.twitter_client.has_high_follower_count")
+    @patch("echos_lab.twitter.twitter_client.post_tweet")
+    @patch("echos_lab.twitter.twitter_client.has_high_follower_count")
     async def test_post_tweet_response_text_quote_tweet(
         self,
         mock_has_high_follower_count: AsyncMock,
@@ -1106,9 +1106,9 @@ class TestPostTweetResponse:
 class TestReplyToMentions:
     @patch("random.random")
     @patch("echos_lab.engines.post_maker.generate_reply_guy_tweet")
-    @patch("echos_lab.twitter_lib.twitter_client.post_tweet")
-    @patch("echos_lab.twitter_lib.twitter_client.get_tweets_from_user_id")
-    @patch("echos_lab.twitter_lib.twitter_client.has_high_follower_count")
+    @patch("echos_lab.twitter.twitter_client.post_tweet")
+    @patch("echos_lab.twitter.twitter_client.get_tweets_from_user_id")
+    @patch("echos_lab.twitter.twitter_client.has_high_follower_count")
     async def test_reply_to_mentions_thread(
         self,
         mock_has_high_follower_count: AsyncMock,
@@ -1207,9 +1207,9 @@ class TestReplyToMentions:
 
     @patch("random.random")
     @patch("echos_lab.engines.post_maker.generate_reply_guy_tweet")
-    @patch("echos_lab.twitter_lib.twitter_client.post_tweet")
-    @patch("echos_lab.twitter_lib.twitter_client.get_tweets_from_user_id")
-    @patch("echos_lab.twitter_lib.twitter_client.has_high_follower_count")
+    @patch("echos_lab.twitter.twitter_client.post_tweet")
+    @patch("echos_lab.twitter.twitter_client.get_tweets_from_user_id")
+    @patch("echos_lab.twitter.twitter_client.has_high_follower_count")
     async def test_reply_to_mentions_quote_tweet(
         self,
         mock_has_high_follower_count: AsyncMock,
@@ -1254,9 +1254,9 @@ class TestReplyToMentions:
 
     @patch("random.random")
     @patch("echos_lab.engines.post_maker.generate_reply_guy_tweet")
-    @patch("echos_lab.twitter_lib.twitter_client.post_tweet")
-    @patch("echos_lab.twitter_lib.twitter_client.get_tweets_from_user_id")
-    @patch("echos_lab.twitter_lib.twitter_client.has_high_follower_count")
+    @patch("echos_lab.twitter.twitter_client.post_tweet")
+    @patch("echos_lab.twitter.twitter_client.get_tweets_from_user_id")
+    @patch("echos_lab.twitter.twitter_client.has_high_follower_count")
     async def test_reply_to_mentions_below_response_rating(
         self,
         mock_has_high_follower_count: AsyncMock,
@@ -1310,9 +1310,9 @@ class TestReplyToMentions:
 class TestReplyToFollowers:
     @patch("random.random")
     @patch("echos_lab.engines.post_maker.generate_reply_guy_tweet")
-    @patch("echos_lab.twitter_lib.twitter_client.post_tweet")
-    @patch("echos_lab.twitter_lib.twitter_client.get_tweets_from_user_id")
-    @patch("echos_lab.twitter_lib.twitter_client.has_high_follower_count")
+    @patch("echos_lab.twitter.twitter_client.post_tweet")
+    @patch("echos_lab.twitter.twitter_client.get_tweets_from_user_id")
+    @patch("echos_lab.twitter.twitter_client.has_high_follower_count")
     async def test_reply_to_followers_thread(
         self,
         mock_has_high_follower_count: AsyncMock,
@@ -1382,9 +1382,9 @@ class TestReplyToFollowers:
 
     @patch("random.random")
     @patch("echos_lab.engines.post_maker.generate_reply_guy_tweet")
-    @patch("echos_lab.twitter_lib.twitter_client.post_tweet")
-    @patch("echos_lab.twitter_lib.twitter_client.get_tweets_from_user_id")
-    @patch("echos_lab.twitter_lib.twitter_client.has_high_follower_count")
+    @patch("echos_lab.twitter.twitter_client.post_tweet")
+    @patch("echos_lab.twitter.twitter_client.get_tweets_from_user_id")
+    @patch("echos_lab.twitter.twitter_client.has_high_follower_count")
     async def test_reply_to_followers_quote_tweet(
         self,
         mock_has_high_follower_count: AsyncMock,
@@ -1430,9 +1430,9 @@ class TestReplyToFollowers:
 
     @patch("random.random")
     @patch("echos_lab.engines.post_maker.generate_reply_guy_tweet")
-    @patch("echos_lab.twitter_lib.twitter_client.post_tweet")
-    @patch("echos_lab.twitter_lib.twitter_client.get_tweets_from_user_id")
-    @patch("echos_lab.twitter_lib.twitter_client.has_high_follower_count")
+    @patch("echos_lab.twitter.twitter_client.post_tweet")
+    @patch("echos_lab.twitter.twitter_client.get_tweets_from_user_id")
+    @patch("echos_lab.twitter.twitter_client.has_high_follower_count")
     async def test_reply_to_followers_random_skip(
         self,
         mock_has_high_follower_count: AsyncMock,

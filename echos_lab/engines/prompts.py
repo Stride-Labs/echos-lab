@@ -13,7 +13,7 @@ from echos_lab.crypto_lib import crypto_connector
 from echos_lab.db import models
 from echos_lab.engines.agent_context import AgentContext
 from echos_lab.engines.personalities.profiles import AgentProfile, LegacyAgentProfile
-from echos_lab.twitter_lib.types import MentionType, TweetMention
+from echos_lab.twitter.types import MentionType, TweetMention
 
 base_path = Path(__file__).parent
 prompt_path = base_path / "system_prompts" / "full_agent_prompt.txt"

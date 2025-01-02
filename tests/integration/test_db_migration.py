@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from echos_lab.db.migrations import json_to_postgres
 from echos_lab.db.models import QueryType, TwitterQueryCheckpoint, TwitterUser
 from echos_lab.engines.personalities.profiles import AgentProfile
-from echos_lab.twitter_lib import twitter_client
+from echos_lab.twitter import twitter_client
 
 # Path constants
 JSON_FILES_DIR = Path(__file__).parent.parent / "fixtures" / "legacy_json_db"

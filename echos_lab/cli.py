@@ -9,7 +9,7 @@ from echos_lab.db.migrations import json_to_postgres
 from echos_lab.telegram_lib import telegram_groups
 from echos_lab.testing import scratch as scratchpad
 from echos_lab.testing import twitter_replies as testing_twitter_replies
-from echos_lab.twitter_lib import auth, twitter_connector, twitter_helpers
+from echos_lab.twitter import auth, twitter_connector, twitter_helpers
 
 
 @click.group()

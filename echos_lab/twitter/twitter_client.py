@@ -17,8 +17,8 @@ from echos_lab.db.models import TweetType
 from echos_lab.engines import full_agent_tools, post_maker, prompts
 from echos_lab.engines.personalities.profiles import AgentProfile
 from echos_lab.engines.prompts import TweetEvaluation
-from echos_lab.twitter_lib import twitter_pipeline
-from echos_lab.twitter_lib.types import (
+from echos_lab.twitter import twitter_pipeline
+from echos_lab.twitter.types import (
     FollowerTweet,
     HydratedTweet,
     MentionType,

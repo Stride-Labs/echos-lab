@@ -8,8 +8,8 @@ from echos_lab.engines import post_maker, prompts
 from echos_lab.engines.personalities import profiles
 from echos_lab.engines.personalities.profiles import AgentProfile
 from echos_lab.engines.post_maker import TweetEvaluation
-from echos_lab.twitter_lib import twitter_client
-from echos_lab.twitter_lib.types import HydratedTweet, MentionType, TweetMention
+from echos_lab.twitter import twitter_client
+from echos_lab.twitter.types import HydratedTweet, MentionType, TweetMention
 
 CURRENT_DIRECTORY = Path(__file__).parent
 INPUT_DIRECTORY = CURRENT_DIRECTORY / "input"

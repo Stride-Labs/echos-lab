@@ -87,7 +87,7 @@ Key Components:
 `crypto_lib/`: handles all cryptocurrency operations including trading, token creation, and price tracking
 `engines/`: core AI logic and decision making, manages bot personality and responses
 `telegram_lib/`: telegram bot operations (direct message and group interactions)
-`twitter_lib/`: twitter automation and social media interactions
+`twitter/`: twitter automation and social media interactions
 `db/`: conversation history storage
 
 Configuration Files:

@@ -17,7 +17,7 @@ from echos_lab.common.env import EnvironmentVariables as envs
 from echos_lab.common.env import get_env_or_raise
 from echos_lab.common.logger import logger
 from echos_lab.common.utils import async_cache
-from echos_lab.twitter_lib import twitter_helpers
+from echos_lab.twitter import twitter_helpers
 
 # TODO: Organize files into: twitter_client.py (tweepy) and twitter_scraper.py (headless)
 
