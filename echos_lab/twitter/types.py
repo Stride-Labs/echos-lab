@@ -52,7 +52,7 @@ class HydratedTweet(Tweet):
     async def get_username(self) -> str:
         """Get's the username by querying the API with the author ID"""
         # lazy import to prevent circular dependency
-        from echos_lab.twitter_lib.twitter_client import get_username_from_user_id
+        from echos_lab.twitter.twitter_client import get_username_from_user_id
 
         # If we previously fetched the username, return that one
         if self._username:

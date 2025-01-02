@@ -6,7 +6,7 @@ from tweepy import Tweet
 
 from echos_lab.common.env import EnvironmentVariables as envs
 from echos_lab.common.env import get_env
-from echos_lab.twitter_lib.types import ReferenceTypes, TweetExclusions
+from echos_lab.twitter.types import ReferenceTypes, TweetExclusions
 
 default_cookies_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.env")
 COOKIES_PATH = get_env(envs.TWITTER_COOKIES_PATH, default_cookies_path)

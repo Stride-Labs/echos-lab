@@ -1,7 +1,7 @@
 from conftest import build_tweet
 
-from echos_lab.twitter_lib import twitter_helpers
-from echos_lab.twitter_lib.types import TweetExclusions
+from echos_lab.twitter import twitter_helpers
+from echos_lab.twitter.types import TweetExclusions
 
 
 class TestFilterTweetExclusions:

@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 
 from echos_lab.db import db_connector, models
 from echos_lab.db.models import QueryType, TwitterQueryCheckpoint, TwitterUser
-from echos_lab.twitter_lib import twitter_client, twitter_helpers
-from echos_lab.twitter_lib.types import TweetExclusions, TweetMention
+from echos_lab.twitter import twitter_client, twitter_helpers
+from echos_lab.twitter.types import TweetExclusions, TweetMention
 
 
 def get_checkpoint(

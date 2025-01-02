@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from echos_lab.common.logger import logger
 from echos_lab.common.utils import with_db
 from echos_lab.engines.personalities.profiles import AgentProfile
-from echos_lab.twitter_lib import twitter_client, twitter_pipeline
+from echos_lab.twitter import twitter_client, twitter_pipeline
 
 
 @with_db

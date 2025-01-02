@@ -17,7 +17,7 @@ from echos_lab.db.db_setup import get_db
 from echos_lab.db.models import Base
 from echos_lab.engines.personalities.profiles import AgentProfile
 from echos_lab.engines.prompts import TweetEvaluation
-from echos_lab.twitter_lib import twitter_client
+from echos_lab.twitter import twitter_client
 
 AGENT_TWITTER_HANDLE = "bot"
 
@@ -57,7 +57,7 @@ def clear_prod_env(monkeypatch: pytest.MonkeyPatch):
 def mock_client():
     """Fixture to provide a mock tweepy client"""
     client = AsyncMock(spec=AsyncClient)
-    with patch("echos_lab.twitter_lib.twitter_client.get_tweepy_async_client", return_value=client):
+    with patch("echos_lab.twitter.twitter_client.get_tweepy_async_client", return_value=client):
         yield client
 
 

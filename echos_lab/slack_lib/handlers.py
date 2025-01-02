@@ -9,7 +9,7 @@ from echos_lab.common.env import get_env
 from echos_lab.common.logger import logger
 from echos_lab.engines.personalities import profiles
 from echos_lab.slack_lib.types import SlackHandler, SlackMessage
-from echos_lab.twitter_lib import twitter_client
+from echos_lab.twitter import twitter_client
 
 
 async def _reply_to_tweet_callback(db: Session, message: SlackMessage, say: AsyncSay):

@@ -2,7 +2,7 @@ from typing import cast
 
 from tweepy import Response
 
-from echos_lab.twitter_lib import twitter_client
+from echos_lab.twitter import twitter_client
 
 
 async def post_tweet(client, tweet="Hello world."):
