@@ -3,7 +3,7 @@ from slack_bolt.async_app import AsyncApp
 
 from echos_lab.common.env import EnvironmentVariables as envs
 from echos_lab.common.env import get_env_or_raise
-from echos_lab.slack_lib import handlers
+from echos_lab.slack import handlers
 
 
 class SlackClient:
