@@ -1,61 +1,58 @@
-from telegram.ext import Application, ExtBot, MessageHandler, filters, CallbackContext, CallbackQueryHandler
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ChatMember
-from telegram.constants import MessageEntityType
-
-from dotenv import load_dotenv
 import os
 import re
-from echos_lab.twitter_lib import twitter_connector
-from echos_lab.engines import full_agent, agent_interests
-from echos_lab.db import db_setup, db_connector
-import asyncio
-import time
-from typing import List
-import argparse
 import traceback
+from functools import partial
+from typing import List
 
-BASE_PATH = os.path.dirname(os.path.abspath(__file__))
-load_dotenv(f"{BASE_PATH}/../.env")
+from telegram import Update
+from telegram.ext import Application, CallbackContext, ExtBot, MessageHandler, filters
 
-# the TG Token is used for the bot
-TG_TOKEN = os.getenv("TG_TOKEN", "")
-if TG_TOKEN == "":
-    raise ValueError("TG_TOKEN not found in .env file")
-
-TARGET_CHAT_ID = os.getenv("CHAT_ID", "")
-if TARGET_CHAT_ID == "":
-    raise ValueError("CHAT_ID not found in .env file")
-TARGET_CHAT_ID = int(TARGET_CHAT_ID)
-
-# get TG admin
-TG_ADMIN_HANDLE = os.getenv("TG_ADMIN_HANDLE", "")
-if TG_ADMIN_HANDLE == "":
-    raise ValueError("TG_ADMIN_HANDLE not found in .env file")
-
-lower_bot_name = agent_interests.BOT_NAME.lower()
-
-GROUPCHAT_TARGET_ID = os.getenv("GROUPCHAT_ID", "0")
-GROUPCHAT_TARGET_ID = int(GROUPCHAT_TARGET_ID)
-if GROUPCHAT_TARGET_ID == 0:
-    IS_IN_GROUPCHAT = False
-else:
-    IS_IN_GROUPCHAT = True
+from echos_lab.common.env import EnvironmentVariables as envs
+from echos_lab.common.env import get_env_or_raise
+from echos_lab.common.logger import logger
+from echos_lab.db import db_connector, db_setup, models
+from echos_lab.engines import full_agent
+from echos_lab.engines.personalities import profiles
+from echos_lab.twitter_lib import twitter_helpers
 
 PARSE_MODE = "Markdown"
-
 QUOTE_TWEET_MARKER = "QUOTE TWEET"
 REPLY_TWEET_MARKER = "REPLY TO"
 TWEET_MARKER = "TWEET"
 
-app = Application.builder().token(TG_TOKEN).build()
-bot = app.bot
 
-ACCOUNT = twitter_connector.get_twitter_account()
+# Module level singleton to store the telegram app
+_app: Application | None = None
 
-DB = db_setup.get_db_session()
+
+def get_telegram_app():
+    """
+    Singleton to get or create the telegram app
+    """
+    telegram_token = get_env_or_raise(envs.TELEGRAM_TOKEN)
+    global _app
+    if not _app:
+        _app = Application.builder().token(telegram_token).build()
+    return _app
+
+
+def escape_markdown(text):
+    """
+    Escapes special markdown characters in text for telegram messages,
+    to prevent messages from showing up as markdown
+    """
+    return re.sub(
+        r'(?<!\[TWEET\]\()([_*[\]`])(?!.*\))',  # match markdown characters not in "[TWEET](...)" pattern
+        r'\\\1',
+        text,
+    )
 
 
 async def get_bot_username(bot: ExtBot) -> str:
+    """
+    Gets the telegram bot username by checking the info
+    Errors if not found
+    """
     bot_info = await bot.get_me()
     if not bot_info:
         raise ValueError(f"Bot info not found for {bot}!")
@@ -64,21 +61,151 @@ async def get_bot_username(bot: ExtBot) -> str:
     return bot_info.username
 
 
-def escape_markdown(text):
-    return re.sub(r'([_*[\]`])', r'\\\1', text)
+def get_posted_tweet_message(agent_username: str, tweet_id: int | None, tweet_text: str) -> str:
+    """
+    Builds a message to send in the telegram channel with the details of
+    a tweet that was just posted.
+
+    Successful message is of the form:
+        Here is my tweet
+        TWEETED (https://twitter.com/link/to/tweet)
+
+    Failed message is of the form:
+        Here is my tweet
+        TWEET COULD NOT BE POSTED
+
+    Args:
+        agent_username: The twitter username of the agent
+        tweet_id: The ID of the tweet (or None if the tweet failed)
+        tweet_text: The tweet contents
+    """
+    if not tweet_id:
+        return f"{tweet_text}\nTWEET COULD NOT BE POSTED"
+
+    tweet_url = twitter_helpers.get_tweet_url(username=agent_username, tweet_id=tweet_id)
+    return f"{tweet_text}\n[TWEETED]({tweet_url})\n"
 
 
-def get_most_recent_messages(target_chat_id=TARGET_CHAT_ID) -> List[tuple[str, str]]:
-    # grab most recent messages
-    most_recent_messages_raw = db_connector.get_tg_messages(DB, target_chat_id, 30)
-    most_recent_messages = [(msg.user_id, msg.content) for msg in most_recent_messages_raw][::-1]
-    return most_recent_messages  # type: ignore
+def get_reply_tweet_message(agent_tweet_message: str, reply_to_tweet_url: str) -> str:
+    """
+    Builds a message to send in the telegram channel with details of a reply tweet
+
+    Successful message is of the form:
+        REPLY TWEET (https://twitter.com/link/to/tweet)
+        Here is my tweet
+        TWEETED (https://twitter.com/link/to/tweet)
+
+    Failed message is of the form:
+        REPLY TWEET (https://twitter.com/link/to/tweet)
+        Here is my tweet
+        TWEET COULD NOT BE POSTED
+
+    Args:
+        agent_tweet_message: String that includes the agent's tweet contents, and link
+          (bottom two lines in example above)
+        reply_to_tweet_url: URL of the tweet that's being replied to
+    """
+    original_tweet_header = f"[{REPLY_TWEET_MARKER}]({reply_to_tweet_url})"
+    return f"{original_tweet_header}\n{agent_tweet_message}"
 
 
-def get_interacted_tweets(target_chat_id=TARGET_CHAT_ID) -> List[str]:
-    most_recent_messages_raw = db_connector.get_tg_messages(DB, target_chat_id, 30)
+def get_quote_tweet_message(agent_tweet_message: str, quote_tweet_url: str) -> str:
+    """
+    Builds a message to send in the telegram channel with details of a quote tweet
+
+    Successful message is of the form:
+        QUOTE TWEET (https://twitter.com/link/to/tweet)
+        Here is my tweet
+        TWEETED (https://twitter.com/link/to/tweet)
+
+    Failed message is of the form:
+        QUOTE TWEET (https://twitter.com/link/to/tweet)
+        Here is my tweet
+        TWEET COULD NOT BE POSTED
+
+    Args:
+        agent_tweet_message: String that includes the agent's tweet contents, and link
+          (bottom two lines in example above)
+        quote_tweet_url: URL of the tweet that's being replied to
+    """
+    original_tweet_header = f"[{QUOTE_TWEET_MARKER}]({quote_tweet_url})"
+    return f"{original_tweet_header}\n{agent_tweet_message}"
+
+
+def get_username_from_update(update: Update) -> str:
+    """
+    Gets the telegram username from the update message
+    If there's no username, returns their first name,
+    and if there's no first name, returns "Unknown"
+    """
+    username = update.message.from_user.username  # type: ignore
+    if username is None:
+        username = update.message.from_user.first_name  # type: ignore
+    if username is None:
+        username = "Unknown"
+    return username
+
+
+def validate_message_update(update: Update, target_chat_id: int) -> str | None:
+    """
+    Validates an incoming telegram update and responds with a bool as to
+    whether it can be ignored, based on the following critiera:
+      - The update is empty
+      - The updated chat ID doesn't match the target ID
+      - There's no message in the update
+
+    Returns the message text or None if the message should be ignored
+    """
+    if not update.effective_chat:
+        logger.info("No chat found in update")
+        return None
+
+    if update.effective_chat.id != target_chat_id:
+        logger.info("Update chat ID does not match target ID")
+        return None
+
+    if not update.message:
+        return None
+
+    logger.debug(f"Update: {update}")
+    logger.debug(f"New message: {update.message.text}\n\n{update.message}")
+
+    message_text = update.message.text
+    if message_text.lower().strip().startswith("ignorethis"):  # type: ignore
+        return None
+
+    return message_text
+
+
+def get_telegram_messages(target_chat_id: int, num_messages: int = 30) -> list[models.TelegramMessage]:
+    """
+    Reads recent telegram messages from the database
+    """
+    with db_setup.get_db() as db:
+        return list(db_connector.get_telegram_messages(db, target_chat_id, num_messages))
+
+
+def save_telegram_messages(username: str, message_contents: str, chat_id: int):
+    """
+    Saves sent telegram messages to the database
+    """
+    with db_setup.get_db() as db:
+        db_connector.add_telegram_message(db, username, message_contents, chat_id)
+
+
+def get_interacted_tweets() -> List[str]:
+    """
+    Gets a list of all the tweets that the bot has already interacted with
+    This is to prevent re-engaging with the same tweet
+    """
+    # Gets the most recent 200 TG messages
+    individual_chat_id = int(get_env_or_raise(envs.TELEGRAM_INDIVIDUAL_CHAT_ID))
+    most_recent_messages_raw = get_telegram_messages(individual_chat_id, 200)
+
     # filter only to messages where msg.user_id == "You"
-    most_recent_messages = [msg.content for msg in most_recent_messages_raw if msg.user_id == "You"]  # type: ignore
+    most_recent_messages = [msg.content for msg in most_recent_messages_raw if msg.user_id == "You"]
+
+    # Build a list of all the tweets IDs that were interacted with already
     interacted_tweets = []
     for message in most_recent_messages:
         if "https://twitter.com/" in message:
@@ -90,37 +217,16 @@ def get_interacted_tweets(target_chat_id=TARGET_CHAT_ID) -> List[str]:
     return list(set(interacted_tweets))
 
 
-async def create_test_group():
-    from echos_lab.telegram_lib import create_telegram_group
-
-    bot_username = await get_bot_username(bot)
-
-    usernames = [TG_ADMIN_HANDLE] + [bot_username]
-    bot_name = agent_interests.BOT_NAME
-    description = f"Chat with {bot_name} - an Echo"
-    create_telegram_group.initialize_telegram_client()
-    async with create_telegram_group.client:
-        chat_id = await create_telegram_group.create_group_with_admins(
-            create_telegram_group.client,
-            bot_name + " - Echo",
-            description,
-            usernames,
-        )
-
-    # Await the async function
-    print(f"Created group with chat_id: {chat_id}")
-
-
-async def send_message(msg_contents, chat_id=TARGET_CHAT_ID):
-    if chat_id == TARGET_CHAT_ID:
-        # define emoji buttons
-        keyboard = [[InlineKeyboardButton("Tweet 🐦", callback_data="tweet")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-    else:
-        reply_markup = None
+async def send_message(msg_contents: str, chat_id: int):
+    """
+    Asynchronously sends a telegram message to the specified chat
+    Returns True since it's used as the last operation in most of the tools,
+    which require returning a bool upon success
+    """
+    app = get_telegram_app()
 
     msg_contents = msg_contents.replace("@", "")
-    print(f"Sending message: {msg_contents}, to chat_id: {chat_id}, with parse_mode: {PARSE_MODE}")
+    logger.info(f"Sending message: {msg_contents}, to chat_id: {chat_id}, with parse_mode: {PARSE_MODE}")
 
     if (QUOTE_TWEET_MARKER in msg_contents) or (REPLY_TWEET_MARKER in msg_contents):
         first_line, rest = msg_contents.split("\n", 1)
@@ -129,201 +235,124 @@ async def send_message(msg_contents, chat_id=TARGET_CHAT_ID):
     else:
         msg_contents = escape_markdown(msg_contents)
 
-    db_connector.add_tg_message(DB, "You", msg_contents, chat_id)
+    save_telegram_messages("You", msg_contents, chat_id)
 
-    await bot.send_message(
+    await app.bot.send_message(
         chat_id=chat_id,
         text=msg_contents,
-        reply_markup=reply_markup,
+        reply_markup=None,
         parse_mode=PARSE_MODE,
     )
 
-
-def send_message_sync(msg_contents, chat_id=TARGET_CHAT_ID):
-    # try to send message 5 times
-    for i in range(5):
-        try:
-            try:
-                # Check if there's a running event loop
-                loop = asyncio.get_running_loop()
-                # If there is, create a task to send the message
-                asyncio.create_task(send_message(msg_contents, chat_id))
-            except Exception:
-                # If no running event loop, create one and run the message
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                # asyncio.create_task(send_message(msg_contents))
-                loop.run_until_complete(send_message(msg_contents, chat_id))
-        except Exception:
-            print(f"ERROR SENDING MESSAGE {msg_contents} - TRY {i+1}")
-            traceback.print_exc()
-            time.sleep(3)
-            continue
-        break
+    return True
 
 
-async def message_handler(update: Update, context: CallbackContext, target_chat_id: int = TARGET_CHAT_ID):
-    '''
-    This function triggers a callback when the bot receives a message in the target chat.
-    '''
-    if not update.effective_chat:
-        print("No chat found in update")
-        return
-    chat_id = update.effective_chat.id
-
-    try:
-        if chat_id == target_chat_id:
-            if update.message:
-                print(f"New message: {update.message.text}\n\n{update.message}")
-                message_text = update.message.text
-                if message_text.lower().strip().startswith("ignorethis"):  # type: ignore
-                    return
-                # add message to history
-                username = update.message.from_user.username  # type: ignore
-                if username is None:
-                    username = update.message.from_user.first_name  # type: ignore
-                if username is None:
-                    username = "Unknown"
-                db_connector.add_tg_message(DB, username, message_text, chat_id)  # type: ignore
-                # send typing symbol
-                await context.bot.send_chat_action(chat_id=chat_id, action="typing")
-                # generate a new response
-                full_agent.respond_in_telegram_flow(username, message_text)
-    except Exception:
-        traceback.print_exc()
-
-
-def evalute_if_should_respond_to_message(message_text: str, message_sender: str) -> bool:
-    print("SENDER", message_sender)
-    words = message_text.lower().split()
-    start_sentence = " ".join(words[:3])
-    if lower_bot_name in start_sentence:
-        return True
-    return False
-
-
-async def groupchat_message_handler(
-    update: Update, context: CallbackContext, target_chat_id: int = GROUPCHAT_TARGET_ID
+async def individual_chat_message_handler(
+    individual_chat_id: int,
+    update: Update,
+    context: CallbackContext,
 ):
-    '''
-    This function triggers a callback when the bot receives a message in the target chat.
-    '''
-    if not update.effective_chat:
-        print("No chat found in update")
+    """
+    This function triggers a callback when the bot receives a message in the target chat
+    This is meant for bot-specific chats
+    """
+    message_text = validate_message_update(update, individual_chat_id)
+    if not message_text:
         return
-    print("UPDATE")
-    print(update)
+
     try:
-        chat_id = update.effective_chat.id
-        if chat_id == target_chat_id:
-            if update.message:
-                print(f"New message: {update.message.text}\n\n{update.message}")
-                message_text = update.message.text
-                if message_text.lower().strip().startswith("ignorethis"):  # type: ignore
-                    return
-                # add message to history
-                username = update.message.from_user.username  # type: ignore
-                if username is None:
-                    username = update.message.from_user.first_name  # type: ignore
-                if username is None:
-                    username = "Unknown"
-                db_connector.add_tg_message(DB, username, message_text, chat_id)  # type: ignore
-                if not evalute_if_should_respond_to_message(message_text, username):  # type: ignore
-                    return
-                # send typing symbol
-                await context.bot.send_chat_action(chat_id=chat_id, action="typing")
-                print(get_most_recent_messages(target_chat_id))
-                # generate a new response
-                full_agent.respond_in_telegram_groupchat_flow(username, message_text, chat_id=chat_id)
+        # add message to history
+        username = get_username_from_update(update)
+        save_telegram_messages(username, message_text, individual_chat_id)
+
+        # send typing symbol
+        await context.bot.send_chat_action(chat_id=individual_chat_id, action="typing")
+
+        # generate a new response
+        await full_agent.respond_in_telegram_individual_flow(username, message_text, individual_chat_id)
+
     except Exception:
         traceback.print_exc()
 
 
-def initiate_tweet(msg: str) -> str:
-    quote_marker = f"[{QUOTE_TWEET_MARKER}]"
-    reply_marker = f"[{REPLY_TWEET_MARKER}]"
+def should_respond_to_groupchat_message(bot_name: str, message_text: str) -> bool:
+    """
+    Evaluates if the bot should respond to a message in the group chat.
 
-    if msg.startswith(quote_marker):
-        msg_contents = msg.split("\n", 1)[1].strip()
-        quote_tweet_id = msg.split("(", 1)[1].split(")")[0].split("/")[-1]
-        tweet_result = twitter_connector.post_tweet(msg_contents, quote_tweet_id=quote_tweet_id)
-    elif msg.startswith(reply_marker):
-        msg_contents = msg.split("\n", 1)[1].strip()
-        reply_tweet_id = msg.split("(", 1)[1].split(")")[0].split("/")[-1]
-        tweet_result = twitter_connector.post_tweet(msg_contents, reply_tweet_id=reply_tweet_id)
-    elif msg.startswith(TWEET_MARKER):
-        tweet_content = msg.split("\n", 1)[1].strip()
-        tweet_result = twitter_connector.post_tweet(tweet_content)
-    else:
-        tweet_result = twitter_connector.post_tweet(msg)
-    return tweet_result
+    Currently, the bot will respond if the previous message contains the bot's name.
+    """
+    # filter to alphanumeric characters, without regex
+    alphanum_message = "".join([c for c in message_text.lower() if c.isalnum()]).split()
+    return bot_name.lower() in alphanum_message
 
 
-async def emoji_reaction_handler(update: Update, context: CallbackContext):
-    '''
-    This function handles when users react to the bot's emoji buttons.
-    '''
-    query = update.callback_query
-    if not query:
-        print("No query found in update")
+async def group_chat_message_handler(
+    bot_name: str,
+    group_chat_id: int,
+    update: Update,
+    context: CallbackContext,
+):
+    """
+    This function triggers a callback when the bot receives a message in a group chat
+    (e.g. the community chat)
+    """
+    message_text = validate_message_update(update, group_chat_id)
+    if not message_text:
         return
-    if not query.from_user:
-        print("No user found in query")
-        return
-    user_id = query.from_user.id
 
-    # fetch the user's status in the chat
-    chat_member = await context.bot.get_chat_member(TARGET_CHAT_ID, user_id)
-    is_admin = chat_member.status in [ChatMember.ADMINISTRATOR, ChatMember.OWNER]
+    try:
+        # add message to history
+        username = get_username_from_update(update)
+        save_telegram_messages(username, message_text, group_chat_id)
 
-    if is_admin:
-        # acknowledge the button press if the user is an admin
-        await query.answer()
+        # evaluate if we should respond
+        if not should_respond_to_groupchat_message(bot_name, message_text):
+            return
 
-        # handle reaction based on callback data
-        reaction = query.data
-        current_text = query.message.text  # type: ignore
-        entities = query.message.entities  # type: ignore
-        # find and insert hyperlinks
-        for entity in entities:
-            if entity.type == MessageEntityType.TEXT_LINK:
-                offset_text = current_text[entity.offset : entity.offset + entity.length]  # noqa: E203
-                current_text = (
-                    current_text[: entity.offset]
-                    + f"[{offset_text}]({entity.url})"
-                    + current_text[entity.offset + entity.length :]  # noqa: E203
-                )
+        # send typing symbol
+        await context.bot.send_chat_action(chat_id=group_chat_id, action="typing")
 
-        if reaction == "tweet":
-            tweet_result = initiate_tweet(current_text)
-            if tweet_result != "":
-                new_text = current_text + f"\n\nThis message was approved by {query.from_user.username}"
-                new_text += f", [tweeted]({tweet_result}) 🐦"
-                await query.edit_message_text(text=new_text, parse_mode=PARSE_MODE)
+        # generate a new response
+        await full_agent.respond_in_telegram_groupchat_flow(username, message_text, group_chat_id=group_chat_id)
+
+    except Exception:
+        traceback.print_exc()
 
 
-def start_listening_to_tg_messages():
-    app.add_handler(MessageHandler(filters.TEXT & filters.Chat(TARGET_CHAT_ID), message_handler))  # type: ignore
-    if IS_IN_GROUPCHAT:
-        print(f"LISTENING TO GROUPCHAT: {GROUPCHAT_TARGET_ID}")
-        app.add_handler(
-            MessageHandler(
-                filters.TEXT & filters.Chat(GROUPCHAT_TARGET_ID),  # type: ignore
-                groupchat_message_handler,
-            )
-        )
-    app.add_handler(CallbackQueryHandler(emoji_reaction_handler))
+async def start_telegram_listener() -> Application:
+    """
+    Configures and starts the telegram application with specific listeners/handlers:
+        1. An echo-specific chat handler (e.g. the echo's TG chat)
+        2. (Optionally) An echo *group* chat handler (e.g. the echo community chat)
+        3. An emoji handler which listens to tweet buttons
 
-    print("starting bot...")
-    app.run_polling(allowed_updates=Update.ALL_TYPES)
+    The app will poll for all messages and react based on each handler accordingly
+    """
+    # Get the agent profile
+    agent_profile = profiles.get_legacy_agent_profile()
+    bot_name = agent_profile.bot_name
 
+    # Create a new telegram listening app
+    app = get_telegram_app()
+    individual_chat_id = int(get_env_or_raise(envs.TELEGRAM_INDIVIDUAL_CHAT_ID))
+    group_chat_id = int(os.environ[envs.TELEGRAM_GROUP_CHAT_ID]) if envs.TELEGRAM_GROUP_CHAT_ID in os.environ else None
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Telegram bot runner')
-    parser.add_argument('--create-chat', action='store_true', help='Create a new test chat group')
-    args = parser.parse_args()
+    # Listen to messages in the target chat
+    in_individual_chat = filters.TEXT & filters.Chat(individual_chat_id)
+    individual_chat_handler = partial(individual_chat_message_handler, individual_chat_id)
+    app.add_handler(MessageHandler(in_individual_chat, individual_chat_handler))
 
-    if args.create_chat:
-        asyncio.run(create_test_group())
-    else:
-        start_listening_to_tg_messages()
+    # If configured, listen to messages in the group chat
+    if group_chat_id:
+        logger.info(f"LISTENING TO GROUPCHAT: {group_chat_id}")
+        in_group_chat = filters.TEXT & filters.Chat(group_chat_id)
+        group_chat_handler = partial(group_chat_message_handler, bot_name, group_chat_id)
+        app.add_handler(MessageHandler(in_group_chat, group_chat_handler))
+
+    # Initailize the listener app
+    await app.initialize()
+    await app.start()
+
+    # Start polling for new messages (that match the above handlers)
+    await app.updater.start_polling(allowed_updates=Update.ALL_TYPES)  # type: ignore
+    return app

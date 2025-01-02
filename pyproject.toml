@@ -1,0 +1,76 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "echos_lab"
+version = "0.1.1"
+authors = [
+    {name = "Stride Labs", email = "dev@stridelabs.co"},
+]
+description = "A collection of tools for Echos infra."
+readme = "README.md"
+requires-python = ">=3.11"
+license = {file = "LICENSE"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "python-telegram-bot==21.6",
+    "twitter-api-client==0.10.22",
+    "telethon==1.37.0",
+    "replicate==1.0.3",
+    "sqlalchemy==2.0.31",
+    "langgraph==0.2.44",
+    "langchain==0.3.7",
+    "langchain-community==0.3.5",
+    "langchain-anthropic==0.2.4",
+    "selenium==4.26.1",
+    "undetected-chromedriver==3.5.5",
+    "web3==7.4.0",
+    "openpipe==4.34.0",
+    "gql==3.5.0",
+    "fuzzywuzzy==0.18.0",
+    "millify==0.1.1",
+    "python-Levenshtein==0.26.1",
+    "tweepy==4.14.0",
+    "apscheduler==3.10.4",
+    "pydash==8.0.4",
+    "click==8.1.7",
+    "gspread==6.1.4",
+    "aiohttp==3.11.7",
+    "async_lru==2.0.4",
+    "oauthlib==3.2.2",
+    "pyyaml==6.0.2",
+    "psycopg2-binary==2.9.10",
+    "slack_bolt==1.21.3"
+]
+
+[project.optional-dependencies]
+dev = [
+    "flake8",
+    "black",
+    "isort",
+    "mypy",
+    "types-requests",
+    "pytest",
+    "pytest-asyncio"
+]
+build = []
+
+[tool.setuptools]
+packages = ["echos_lab"]
+package-data = { "echos_lab" = ["py.typed", "*.pyi"] }
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:'imghdr' is deprecated:DeprecationWarning",
+    "ignore::DeprecationWarning:web3.providers.legacy_websocket:",
+    "ignore::DeprecationWarning:websockets.legacy:",
+    "ignore::DeprecationWarning:web3.providers.persistent.websocket:"
+]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[project.scripts]
+echos = "echos_lab.cli:cli"

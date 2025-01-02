@@ -1,37 +1,50 @@
 import json
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict, List, TypedDict, Union
 
 
-def parse_twitter_data(data: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Parse and format Twitter JSON data into a more readable structure.
+class TwitterUser(TypedDict):
+    id: str
+    name: str
+    screen_name: str
+    description: str
+    followers_count: int
+    following_count: int
+    tweet_count: int
+    location: str
+    created_at: str
+    verified: bool
+    is_blue_verified: bool
 
-    Args:
-        data (Dict[str, Any]): Raw Twitter JSON data
 
-    Returns:
-        Dict[str, Any]: Formatted and cleaned data structure
-    """
-    parsed_data = {'users': [], 'notifications': []}
+class TwitterNotification(TypedDict, total=False):  # total=False allows optional fields
+    id: str
+    timestamp: str
+    type: str
+    message: str
+    referenced_users: List[str]
+
+
+def parse_twitter_data(data: Dict[str, Any]) -> Dict[str, List[Union[TwitterUser, TwitterNotification]]]:
+    parsed_data: Dict[str, List[Union[TwitterUser, TwitterNotification]]] = {'users': [], 'notifications': []}
 
     # Parse users
     if 'globalObjects' in data and 'users' in data['globalObjects']:
         users = data['globalObjects']['users']
         for user_id, user_info in users.items():
-            cleaned_user = {
-                'id': user_info['id'],
-                'name': user_info['name'],
-                'screen_name': user_info['screen_name'],
-                'description': user_info['description'],
-                'followers_count': user_info['followers_count'],
-                'following_count': user_info['friends_count'],
-                'tweet_count': user_info['statuses_count'],
-                'location': user_info['location'],
-                'created_at': user_info['created_at'],
-                'verified': user_info['verified'],
-                'is_blue_verified': user_info['ext_is_blue_verified'],
-            }
+            cleaned_user: TwitterUser = TwitterUser(
+                id=user_info['id'],
+                name=user_info['name'],
+                screen_name=user_info['screen_name'],
+                description=user_info['description'],
+                followers_count=user_info['followers_count'],
+                following_count=user_info['friends_count'],
+                tweet_count=user_info['statuses_count'],
+                location=user_info['location'],
+                created_at=user_info['created_at'],
+                verified=user_info['verified'],
+                is_blue_verified=user_info['ext_is_blue_verified'],
+            )
             parsed_data['users'].append(cleaned_user)
 
     # Parse notifications
@@ -45,11 +58,14 @@ def parse_twitter_data(data: Dict[str, Any]) -> Dict[str, Any]:
             message = notif_info['message']['text']
             notif_type = notif_info['icon']['id']
 
-            cleaned_notification = {'id': notif_id, 'timestamp': timestamp, 'type': notif_type, 'message': message}
+            # Create the base notification
+            cleaned_notification: TwitterNotification = TwitterNotification(
+                id=notif_id, timestamp=timestamp, type=notif_type, message=message
+            )
 
             # Add user references if present
             if 'entities' in notif_info['message']:
-                user_refs = []
+                user_refs: List[str] = []
                 for entity in notif_info['message']['entities']:
                     if 'ref' in entity and 'user' in entity['ref']:
                         user_refs.append(entity['ref']['user']['id'])

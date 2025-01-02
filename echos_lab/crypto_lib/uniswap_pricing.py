@@ -1,7 +1,9 @@
+import traceback
+from functools import lru_cache
+
 from web3 import Web3
 from web3.contract import Contract
-from functools import lru_cache
-import traceback
+
 from echos_lab.crypto_lib import abis
 from echos_lab.crypto_lib import crypto_helpers as ch
 
@@ -25,14 +27,14 @@ uni_factory_abi = [
 
 @lru_cache
 def get_pool_contract(token_address: str) -> tuple[str, Contract]:
-    '''
+    """
     From a token's contract address, this returns the pool contract address
     on Uniswap v3.
 
     In particular, this gets the token address for the pool _paired against BASE asset_
 
     If there are multiple pools, will return the one with the most liquidity (defined as "most base asset")
-    '''
+    """
     factory_contract = ch.web3.eth.contract(
         address=ch.web3.to_checksum_address(ch.UNISWAP_FACTORY_ADDRESS),
         abi=abis.uniswap_factory_abi,
@@ -44,7 +46,8 @@ def get_pool_contract(token_address: str) -> tuple[str, Contract]:
     best_base_reserves = 0
     token_checksum = Web3.to_checksum_address(token_address)
     for fee_tier in fee_tiers:
-        pool_address = factory_contract.functions.getPool(token_checksum, ch.WUSDC_CHECKSUM, fee_tier).call()
+        wusdc_checksum = ch.web3.to_checksum_address(ch.WUSDC_ADDRESS)
+        pool_address = factory_contract.functions.getPool(token_checksum, wusdc_checksum, fee_tier).call()
         if pool_address == NULL_ADDRESS:
             continue
         pool_contract = ch.web3.eth.contract(address=pool_address, abi=abis.uni_pool_abi)
@@ -64,9 +67,9 @@ def get_pool_contract(token_address: str) -> tuple[str, Contract]:
 
 @lru_cache
 def get_asset_price(token_address: str) -> float:
-    '''
+    """
     Returns the price of an asset in terms of ETH.
-    '''
+    """
     if token_address == ch.BASE_ASSET:
         return ch.BASE_PRICE
     try:

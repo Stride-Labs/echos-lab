@@ -1,14 +1,7 @@
+from typing import Dict, List
+
 import echos_lab.crypto_lib.crypto_helpers as ch
-from echos_lab.crypto_lib import uniswap_pricing
-from echos_lab.crypto_lib import goldsky
-from typing import List, Dict
-from dotenv import load_dotenv
-import os
-
-# path to _this_ file
-BASE_PATH = os.path.dirname(os.path.abspath(__file__))
-
-load_dotenv(f"{BASE_PATH}/../.env")
+from echos_lab.crypto_lib import goldsky, uniswap_pricing
 
 
 def get_erc20_balance(address, token_address) -> int:

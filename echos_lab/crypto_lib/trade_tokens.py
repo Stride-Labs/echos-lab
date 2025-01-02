@@ -1,6 +1,11 @@
-from echos_lab.crypto_lib import crypto_helpers as ch, goldsky
-from echos_lab.crypto_lib import abis
+from typing import cast
+
 from eth_account.signers.local import LocalAccount
+from web3.types import Nonce, Wei
+
+from echos_lab.crypto_lib import abis
+from echos_lab.crypto_lib import crypto_helpers as ch
+from echos_lab.crypto_lib import goldsky
 
 
 def trade_pregrad_token(
@@ -22,7 +27,7 @@ def trade_pregrad_token(
     Will return True if the tx succeeded, False otherwise
     """
     factory_contract = ch.web3.eth.contract(
-        address=ch.web3.to_checksum_address(ch.TOKEN_FACTORY_ADDRESS),
+        address=ch.web3.to_checksum_address(ch.ECHO_MANAGER_ADDRESS),
         abi=abis.meme_manager_abi,
     )
     trade_amount = int(human_readable_amount * ch.ONE_BASE_TOKEN)
@@ -31,7 +36,7 @@ def trade_pregrad_token(
         "nonce": ch.web3.eth.get_transaction_count(account.address),
         "gas": 7_000_000,
         "gasPrice": ch.GAS_PRICE,
-        "chainId": ch.CHAIN_ID,
+        "chainId": ch.ECHOS_CHAIN_ID,
     }
     if is_buy:
         factory_function = factory_contract.functions.buy(token_address, trade_amount, min_amount_received)
@@ -78,8 +83,8 @@ def trade_univ3(
     Executes a trade on uniswap
     """
     # Step 1: convert to wrapped USDC if needed
-    final_token_in = ch.WUSDC if from_token_address == "USDC" else from_token_address
-    final_token_out = ch.WUSDC if to_token_address == "USDC" else to_token_address
+    final_token_in = ch.WUSDC_ADDRESS if from_token_address == "USDC" else from_token_address
+    final_token_out = ch.WUSDC_ADDRESS if to_token_address == "USDC" else to_token_address
     metadata = ch.get_token_metadata(final_token_in)
     trade_amount = int(human_readable_in_amount * (10 ** metadata['decimals']))
 
@@ -102,19 +107,20 @@ def trade_univ3(
         "nonce": ch.web3.eth.get_transaction_count(account.address),
         "gas": 7_000_000,
         "gasPrice": ch.GAS_PRICE,
-        "chainId": ch.CHAIN_ID,
+        "chainId": ch.ECHOS_CHAIN_ID,
     }
     if from_token_address == ch.BASE_ASSET:
         # trading from USDC -> MEME
         final_trade_function = router_contract.functions.exactInputSingle(
             (final_token_in, final_token_out, fee, account.address, trade_amount, min_amount_received, 0)
         )
-        trade_params["value"] = trade_amount
+        trade_params["value"] = Wei(trade_amount)  # explicit conversion to Wei
     elif to_token_address == ch.BASE_ASSET:
         # trading from MEME -> USDC
         # first grant approval
         ch.approve_token_spending(account, final_token_in, router_contract.address, trade_amount)
-        trade_params["nonce"] += 1
+        current_nonce = int(cast(Nonce, trade_params["nonce"]))
+        trade_params["nonce"] = Nonce(current_nonce + 1)
         # now build the two subcalls
         trade_function = router_contract.functions.exactInputSingle(
             (final_token_in, final_token_out, fee, router_contract.address, trade_amount, min_amount_received, 0)
@@ -124,7 +130,8 @@ def trade_univ3(
         final_trade_function = router_contract.functions.multicall([trade_function, unwrap_function])
     else:
         ch.approve_token_spending(account, final_token_in, router_contract.address, trade_amount)
-        trade_params["nonce"] += 1
+        current_nonce = int(cast(Nonce, trade_params["nonce"]))
+        trade_params["nonce"] = Nonce(current_nonce + 1)
         final_trade_function = router_contract.functions.exactInputSingle(
             final_token_in, final_token_out, fee, account.address, trade_amount, min_amount_received, 0
         )

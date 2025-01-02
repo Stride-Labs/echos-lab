@@ -1,28 +1,31 @@
-from langchain_core.tools import tool
-
-from echos_lab.engines import follow_user, post_maker, post_retriever, agent_interests, context_store
-from echos_lab.twitter_lib import twitter_pipeline, twitter_connector
-from echos_lab.crypto_lib import crypto_connector
-from echos_lab.db import db_setup
-from echos_lab.telegram_lib import telegram_connector
-import traceback
 import time
+import traceback
 from typing import List
 
+from langchain_core.tools import tool
 
-ACCOUNT = twitter_connector.get_twitter_account()
-SCRAPER = twitter_connector.get_twitter_scraper()
-
-DB = db_setup.get_db_session()
-
-
-def send_tg_message_wrapper(contents, chat_id=telegram_connector.TARGET_CHAT_ID):
-    telegram_connector.send_message_sync(contents, chat_id=chat_id)
-    return True
+from echos_lab.crypto_lib import create_token, crypto_connector
+from echos_lab.db import db_setup
+from echos_lab.engines import (
+    context_store,
+    follow_user,
+    memes,
+    post_maker,
+    post_retriever,
+)
+from echos_lab.engines.personalities import profiles
+from echos_lab.engines.prompts import TweetEvaluation
+from echos_lab.telegram_lib import telegram_connector
+from echos_lab.twitter_lib import (
+    twitter_client,
+    twitter_connector,
+    twitter_helpers,
+    twitter_pipeline,
+)
 
 
 @tool
-def construct_viral_tweet(subject_matter: str, sentiment: str, replying_to: str) -> str:
+async def construct_viral_tweet(subject_matter: str, sentiment: str, replying_to: str) -> str:
     """
     Generates an edgy tweet based on the given subject matter.
 
@@ -52,12 +55,13 @@ def construct_viral_tweet(subject_matter: str, sentiment: str, replying_to: str)
     Returns:
     - str: The generated tweet content.
     """
-    new_tweet = post_maker.generate_tweet_from_model(sentiment, subject_matter, replying_to)
+    agent_profile = profiles.get_legacy_agent_profile()
+    new_tweet = post_maker.generate_tweet_from_model(agent_profile.model_name, sentiment, subject_matter, replying_to)
     return new_tweet
 
 
 @tool
-def send_tweet(tweet_content: str) -> bool:
+async def send_tweet(tweet_content: str) -> bool:
     """
     Post a new tweet on your Twitter account.
     The exact contents of "tweet_contents" will be posted as a new tweet.
@@ -68,11 +72,26 @@ def send_tweet(tweet_content: str) -> bool:
     Returns:
     - bool: True if the tweet was successfully posted, False otherwise
     """
-    return send_tg_message_wrapper(f"TWEET\n{tweet_content}", chat_id=context_store.get_env_var("chat_id"))
+    # post tweet
+    agent_profile = profiles.get_legacy_agent_profile()
+    twitter_handle = agent_profile.twitter_handle
+    tweet_id = await twitter_client.post_tweet(agent_username=twitter_handle, text=tweet_content)
+
+    # Construct telegram tweet message
+    telegram_message = telegram_connector.get_posted_tweet_message(
+        agent_username=agent_profile.twitter_handle,
+        tweet_id=tweet_id,
+        tweet_text=tweet_content,
+    )
+
+    return await telegram_connector.send_message(
+        telegram_message,
+        chat_id=context_store.get_env_var("telegram_chat_id"),
+    )
 
 
 @tool
-def send_tweet_reply(tweet_content: str, tweet_id: str, user_name: str) -> bool:
+async def send_tweet_reply(tweet_content: str, tweet_id: str, user_name: str) -> bool:
     """
     Post a reply to an existing tweet, with given tweet_id.
 
@@ -90,13 +109,40 @@ def send_tweet_reply(tweet_content: str, tweet_id: str, user_name: str) -> bool:
     Returns:
     - bool: True if the tweet was successfully posted, False otherwise
     """
-    twitter_url = f"https://twitter.com/{user_name}/status/{tweet_id}"
-    new_message = f"[{telegram_connector.REPLY_TWEET_MARKER}]({twitter_url})\n{tweet_content}"
-    return send_tg_message_wrapper(new_message, chat_id=context_store.get_env_var("chat_id"))
+    # fetch and store original tweet in DB
+    with db_setup.get_db() as db:
+        original_tweet = await twitter_pipeline.get_tweet_from_tweet_id(db, int(tweet_id))
+
+    # if not original tweet is found, we can't reply
+    if not original_tweet:
+        return False
+
+    # post tweet
+    agent_profile = profiles.get_legacy_agent_profile()
+    agent_username = agent_profile.twitter_handle
+    posted_tweet_id = await twitter_client.post_tweet(
+        agent_username=agent_username,
+        text=tweet_content,
+        in_reply_to_tweet_id=int(tweet_id),
+        conversation_id=original_tweet.conversation_id,
+    )
+
+    # Construct telegram tweet message
+    agent_tweet_message = telegram_connector.get_posted_tweet_message(
+        agent_username=agent_profile.twitter_handle,
+        tweet_id=posted_tweet_id,
+        tweet_text=tweet_content,
+    )
+    original_tweet_url = twitter_helpers.get_tweet_url(username=user_name, tweet_id=int(tweet_id))
+    telegram_message = telegram_connector.get_reply_tweet_message(agent_tweet_message, original_tweet_url)
+
+    return await telegram_connector.send_message(
+        telegram_message, chat_id=context_store.get_env_var("telegram_chat_id")
+    )
 
 
 @tool
-def send_quote_tweet(tweet_content: str, tweet_id: str, user_name: str) -> bool:
+async def send_quote_tweet(tweet_content: str, tweet_id: str, user_name: str) -> bool:
     """
     Post a quote tweet to an existing tweet, with given tweet_id.
 
@@ -110,30 +156,55 @@ def send_quote_tweet(tweet_content: str, tweet_id: str, user_name: str) -> bool:
     Returns:
     - bool: True if the tweet was successfully posted, False otherwise
     """
-    twitter_url = f"https://twitter.com/{user_name}/status/{tweet_id}"
-    new_message = f"[{telegram_connector.QUOTE_TWEET_MARKER}]({twitter_url})\n{tweet_content}"
-    return send_tg_message_wrapper(new_message, chat_id=context_store.get_env_var("chat_id"))
+    # store original tweet in DB
+    with db_setup.get_db() as db:
+        await twitter_pipeline.get_tweet_from_tweet_id(db, int(tweet_id))
+
+    # post tweet
+    agent_profile = profiles.get_legacy_agent_profile()
+    agent_username = agent_profile.twitter_handle
+    posted_tweet_id = await twitter_client.post_tweet(
+        agent_username=agent_username, text=tweet_content, quote_tweet_id=int(tweet_id)
+    )
+
+    # Construct telegram tweet message
+    agent_tweet_message = telegram_connector.get_posted_tweet_message(
+        agent_username=agent_profile.twitter_handle,
+        tweet_id=posted_tweet_id,
+        tweet_text=tweet_content,
+    )
+    original_tweet_url = twitter_helpers.get_tweet_url(username=user_name, tweet_id=int(tweet_id))
+    telegram_message = telegram_connector.get_quote_tweet_message(agent_tweet_message, original_tweet_url)
+
+    return await telegram_connector.send_message(
+        telegram_message, chat_id=context_store.get_env_var("telegram_chat_id")
+    )
 
 
-def get_twitter_feed_raw(new_posts_only: bool, include_id=True, notifications_only=False) -> str:
+async def get_twitter_feed_raw(new_posts_only: bool, include_id=True, notifications_only=False) -> str:
+    account = twitter_connector.get_twitter_account()
+    scraper = twitter_connector.get_twitter_scraper()
+
     # get recent tweets
-    recent_posts, formatted_recent_posts, notif_context_tuple = twitter_pipeline.get_recent_tweets(
-        db=DB,
-        account=ACCOUNT,
-        scraper=SCRAPER,
-        notifications_only=notifications_only,
+    notif_context_tuple = await post_retriever.fetch_notification_context(
+        account=account, scraper=scraper, notifications_only=notifications_only
     )
+
     # update our db with tweet ids
-    filtered_notif_context_tuple = twitter_pipeline.update_db_with_tweet_ids(
-        db=DB,
-        notif_context_tuple=notif_context_tuple,
-    )
-    relevant_tweets = notif_context_tuple
+    with db_setup.get_db() as db:
+        filtered_notif_context_tuple = await twitter_pipeline.update_db_with_tweet_ids(
+            db=db,
+            notif_context_tuple=notif_context_tuple,
+        )
+
     # get what tweets we've already talked about in TG
     seen_ids = telegram_connector.get_interacted_tweets()
+
     # format the tweets
+    relevant_tweets = notif_context_tuple
     if new_posts_only:
         relevant_tweets = filtered_notif_context_tuple
+
     post_str = "TWEETS\n====================\n"
     for tweet in relevant_tweets:
         post_str += f"{tweet[0].strip()}\n"
@@ -148,7 +219,7 @@ def get_twitter_feed_raw(new_posts_only: bool, include_id=True, notifications_on
 
 
 @tool
-def get_twitter_feed() -> str:
+async def get_twitter_feed() -> str:
     """
     Get the most recent tweets on your Twitter feed.
 
@@ -159,11 +230,11 @@ def get_twitter_feed() -> str:
     - str: A detailed text description of the most recent tweets on your feed.
            Output includes post IDs, usernames, and the content of the tweets.
     """
-    return get_twitter_feed_raw(new_posts_only=False)
+    return await get_twitter_feed_raw(new_posts_only=False)
 
 
 @tool
-def get_twitter_notifications() -> str:
+async def get_twitter_notifications() -> str:
     """
     Gets your most recent notifications on Twitter.
 
@@ -176,11 +247,11 @@ def get_twitter_notifications() -> str:
     - str: A detailed text description of your notifications
            Output includes post IDs, usernames, and the content of the tweets.
     """
-    return get_twitter_feed_raw(new_posts_only=True, notifications_only=True)
+    return await get_twitter_feed_raw(new_posts_only=True, notifications_only=True)
 
 
 @tool
-def get_twitter_post(post_id: str) -> str:
+async def get_twitter_post(post_id: str) -> str:
     """
     Gets the contents of a specific post on Twitter, including the relevant thread.
 
@@ -194,9 +265,12 @@ def get_twitter_post(post_id: str) -> str:
     Returns:
     - str: A detailed text description of the post and surrounding conversation
     """
+    scraper = twitter_connector.get_twitter_scraper()
     for _ in range(3):
         try:
-            formatted_text = post_retriever.format_conversation_for_llm({}, post_id, SCRAPER, individual_tweet=True)
+            formatted_text = await post_retriever.format_conversation_for_llm(
+                {}, post_id, scraper, individual_tweet=True
+            )
             return formatted_text
         except Exception:
             traceback.print_exc()
@@ -206,7 +280,7 @@ def get_twitter_post(post_id: str) -> str:
 
 
 @tool
-def read_twitter_user_posts(username: str) -> str:
+async def read_twitter_user_posts(username: str) -> str:
     """
     Returns the most recent tweets for a particular username.
 
@@ -220,7 +294,7 @@ def read_twitter_user_posts(username: str) -> str:
     Returns:
     - str: A text block containing the most recent tweets for the specified username
     """
-    twitter_posts = twitter_connector.get_tweets_from_user(username)
+    twitter_posts = await twitter_connector.get_tweets_from_username(username)
     return twitter_posts
 
 
@@ -237,7 +311,8 @@ def like_twitter_post(post_id: str) -> bool:
     Returns:
     - bool: True if the post was successfully liked, False otherwise
     """
-    out = follow_user.like_post(ACCOUNT, post_id)
+    account = twitter_connector.get_twitter_account()
+    out = follow_user.like_post(account, post_id)
     try:
         if out['data']['favorite_tweet'] == 'Done':
             return True
@@ -247,7 +322,7 @@ def like_twitter_post(post_id: str) -> bool:
 
 
 @tool
-def follow_twitter_user(username: str) -> bool:
+async def follow_twitter_user(username: str) -> bool:
     """
     Follows the specified Twitter User by their username.
 
@@ -259,26 +334,41 @@ def follow_twitter_user(username: str) -> bool:
     Returns:
     - bool: True if the user was successfully followed, False otherwise
     """
-    target = twitter_connector.get_user_id(username=username)
+    account = twitter_connector.get_twitter_account()
+    target = await twitter_connector.get_user_id_from_username(username=username)
     if target:
-        out = follow_user.follow_user(ACCOUNT, target)
+        out = follow_user.follow_user(account, target)
         print(out)
         return True
     return False
 
 
-def get_telegram_messages_raw(specific_user: str = "", chat_id: int = telegram_connector.TARGET_CHAT_ID) -> str:
-    messages = telegram_connector.get_most_recent_messages(target_chat_id=chat_id)
-    message_str = "TELEGRAM MESSAGES\n====================\n"
-    for msg in messages:
-        message_str += '---\n'
-        if specific_user != "":
-            if msg[0] == specific_user:
-                message_str += f"\t{msg[1]}\n\tFrom: {msg[0]}\n"
-        else:
-            message_str += f"\t{msg[1]}\n\tFrom: {msg[0]}\n"
-    message_str += "====================\n"
-    return message_str
+def get_telegram_messages_raw(chat_id: int, specific_user: str | None = None) -> str:
+    """
+    Returns a string summary of all telegram messages from a given chat
+
+    Optionally filter to just messages for a given user
+    """
+    messages = telegram_connector.get_telegram_messages(target_chat_id=chat_id)[::-1]
+
+    # Optionally filter for just messages from the specific user
+    if specific_user:
+        messages = [msg for msg in messages if msg.user_id == specific_user]
+
+    # Format each message as:
+    #   Here's my message
+    #   From: Username
+    formatted_messages = [f"\t{msg.content}\n\tFrom: {msg.user_id}" for msg in messages]
+
+    # Build full summary string
+    return "\n".join(
+        [
+            "TELEGRAM MESSAGES",
+            "====================",
+            "\n---\n".join(formatted_messages),
+            "====================\n",
+        ]
+    )
 
 
 @tool
@@ -294,7 +384,7 @@ def get_telegram_messages() -> str:
     Returns:
     - str: A formatted text string containing the most recent messages from your Telegram account.
     """
-    return get_telegram_messages_raw(chat_id=context_store.get_env_var("chat_id"))
+    return get_telegram_messages_raw(chat_id=context_store.get_env_var("telegram_chat_id"))
 
 
 @tool
@@ -313,7 +403,7 @@ def get_interacted_tweets() -> List[str]:
 
 
 @tool
-def send_telegram_message(message_content: str) -> bool:
+async def send_telegram_message(message_content: str) -> bool:
     """
     Post a new message to your private Telegram channel.
 
@@ -323,11 +413,11 @@ def send_telegram_message(message_content: str) -> bool:
     Returns:
     - bool: True if the message was successfully sent, False otherwise
     """
-    return send_tg_message_wrapper(message_content, chat_id=context_store.get_env_var("chat_id"))
+    return await telegram_connector.send_message(message_content, chat_id=context_store.get_env_var("telegram_chat_id"))
 
 
 @tool
-def construct_specialized_llm_tweet(
+async def construct_specialized_llm_tweet(
     mode: str,
     respond_to: str,
 ) -> str:
@@ -362,29 +452,15 @@ def construct_specialized_llm_tweet(
     - str: The generated tweet content.
     """
     if mode == "timeline":
-        timeline = get_twitter_feed_raw(new_posts_only=False, include_id=False)
+        timeline = await get_twitter_feed_raw(new_posts_only=False, include_id=False)
     else:
         timeline = ""
-    recent_messages = get_telegram_messages_raw(specific_user="You", chat_id=context_store.get_env_var("chat_id"))
+    recent_messages = get_telegram_messages_raw(
+        specific_user="You", chat_id=context_store.get_env_var("telegram_chat_id")
+    )
     recent_messages = recent_messages.replace("TELEGRAM MESSAGES\n====================\n", "")
     new_tweet = post_maker.generate_tweet_from_model_hal(mode, recent_messages, timeline, respond_to=respond_to)
     return new_tweet
-
-
-@tool
-def get_crypto_balance() -> str:
-    """
-    Fetches your account's crypto holdings.
-
-    Your holdings are returned as a well-formatted string describing the
-    assets you hold, their tickers, and their current value.
-
-    Returns:
-    - str: A formatted text string containing your crypto holdings.
-    """
-    crypto_balance = crypto_connector.query_self_account_balance()
-    formatted_balance = crypto_connector.format_balances(crypto_balance)
-    return formatted_balance
 
 
 @tool
@@ -412,10 +488,13 @@ def launch_memecoin(name: str, symbol: str, description: str, image_description:
     Returns:
     - bool: A boolean indicating whether the memecoin was successfully launched.
     """
+    agent_profile = profiles.get_legacy_agent_profile()
+
     # filter name to alphanumeric only, and only first 10 characters
     name = "".join([c for c in name[:10] if c.isalnum()])
-    attributes = image_description + ", " + agent_interests.IMAGE_TAGS
-    return crypto_connector.launch_memecoin(name, symbol, description, attributes)
+    attributes = image_description + ", " + agent_profile.image_tags
+    account = crypto_connector.get_account()
+    return create_token.create_memecoin(agent_profile, name, symbol, description, attributes, account)
 
 
 @tool
@@ -448,3 +527,39 @@ def trade_coins(from_address: str, to_address: str, dollar_amount: float) -> boo
     except Exception:
         traceback.print_exc()
         return False
+
+
+def caption_meme_from_tweet_evaluation(tweet_evaluation: TweetEvaluation, remove_watermark: bool = True) -> dict | None:
+    """
+    Captions a meme based on the tweet evaluation.
+    Makes captions UPPERCASE.
+
+    Returns:
+    - dict: A dictionary containing the URL and page URL of the captioned meme
+
+    Example responses from caption_meme:
+        Example Success Response:
+            {
+                "success": true,
+                "data": {
+                    "url": "https://i.imgflip.com/123abc.jpg",
+                    "page_url": "https://imgflip.com/i/123abc"
+                }
+            }
+
+        Example Failure Response:
+            {
+                "success" => false,
+                "error_message" => "Some hopefully-useful statement about why it failed"
+            }
+    """
+    # split captions on commas and captialize to feed into meme generator api
+    text_boxes = [box.upper() for box in tweet_evaluation.meme_caption.split(',')]
+
+    try:
+        # pass in variable number of captions to meme generation
+        caption_result = memes.caption_meme(tweet_evaluation.meme_id, *text_boxes, remove_watermark=remove_watermark)
+        return caption_result
+    except Exception as e:
+        print(f"Error captioning meme:{str(tweet_evaluation)}, exception: {str(e)}")
+        return None

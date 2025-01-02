@@ -1,11 +1,11 @@
-import requests
-from typing import List, Dict
-from sqlalchemy.orm import Session
-from echos_lab.db.models import Post
-from echos_lab.twitter_lib import twitter_connector
-from sqlalchemy.orm import class_mapper
+from typing import Dict, List, Tuple
+
+from sqlalchemy.orm import Session, class_mapper
 from twitter.account import Account
 from twitter.scraper import Scraper
+
+from echos_lab.db.models import Tweet
+from echos_lab.twitter_lib import twitter_connector
 
 NUM_POSTS = 40
 
@@ -25,31 +25,28 @@ def convert_posts_to_dict(posts):
 
 def retrieve_recent_posts(db: Session, limit: int = 10) -> List[Dict]:
     """
-    Retrieve the most recent posts from the database.
+    Retrieve the most recent tweets from the database.
 
     Args:
         db (Session): Database session
-        limit (int): Number of posts to retrieve
+        limit (int): Number of tweets to retrieve
 
     Returns:
-        List[Dict]: List of recent posts as dictionaries
+        List[Dict]: List of recent tweeyts as dictionaries
     """
-    recent_posts = db.query(Post).order_by(Post.created_at.desc()).limit(limit).all()
-    return [post_to_dict(post) for post in recent_posts]
+    recent_tweets = db.query(Tweet).order_by(Tweet.created_at.desc()).limit(limit).all()
+    return [post_to_dict(tweet) for tweet in recent_tweets]
 
 
-def post_to_dict(post: Post) -> Dict:
+def post_to_dict(tweet: Tweet) -> Dict:
     """Convert a Post object to a dictionary."""
     return {
-        "id": post.id,
-        "content": post.content,
-        "user_id": post.user_id,
-        "created_at": post.created_at.isoformat() if post.created_at else None,  # type: ignore
-        "updated_at": post.updated_at.isoformat() if post.updated_at else None,  # type: ignore
-        "type": post.type,
-        "comment_count": post.comment_count,
-        "image_path": post.image_path,
-        "tweet_id": post.tweet_id,
+        "id": tweet.tweet_id,
+        "content": tweet.text,
+        "user_id": tweet.author_id,
+        "created_at": tweet.created_at,
+        "type": tweet.tweet_type.value,
+        "tweet_id": str(tweet.tweet_id),
     }
 
 
@@ -92,25 +89,6 @@ def format_post_list(posts) -> str:
 
     # If we can't process it, return as string
     return str(posts)
-
-
-def fetch_external_context(api_key: str, query: str) -> List[str]:
-    """
-    Fetch external context from a news API or other source.
-
-    Args:
-        api_key (str): API key for the external service
-        query (str): Search query
-
-    Returns:
-        List[str]: List of relevant news headlines or context
-    """
-    url = f"https://newsapi.org/v2/everything?q={query}&apiKey={api_key}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        news_items = response.json().get("articles", [])
-        return [item["title"] for item in news_items[:5]]
-    return []
 
 
 def parse_tweet_data(tweet_data) -> List[Dict]:
@@ -176,25 +154,50 @@ def parse_tweet_data(tweet_data) -> List[Dict]:
         return [{"error": f"Error parsing data: {e}"}]
 
 
-def get_root_tweet_id(tweets, start_id, scraper: Scraper):
-    """Find the root tweet ID of a conversation."""
-    current_id = start_id
+async def get_root_tweet_id(tweets: dict, start_id: str, scraper: Scraper) -> str | None:
+    """
+    Find the root tweet ID of a conversation, or returns None
+    if the root could not be found
+    """
     print(f"Finding root for {start_id}")
+
+    # Recursively traverse the conversation until we get to the root
+    current_id = start_id
     while True:
-        tweet = tweets.get(str(current_id))
+        # Get the tweet associated with the current ID
+        # If it's not already in the tweets dict, scape the tweet from the ID
+        tweet = tweets.get(current_id)
         if not tweet:
-            tweet = twitter_connector.get_tweet_by_id(current_id, scraper)
-        parent_id = tweet.get('in_reply_to_status_id_str', '')
-        if (parent_id == '') or (parent_id is None):
+            tweet = await twitter_connector.get_tweet_from_tweet_id(current_id, scraper)
+            if not tweet:
+                return None
+
+        # Get the parent ID of the tweet
+        # If there's no parent ID, that means the tweet is the root and we can return it
+        parent_id = tweet.get("in_reply_to_status_id_str", None)
+        if parent_id is None:
             return current_id
+
+        # Otherwise, update the current ID to the parent and continue the loop
         current_id = parent_id
 
 
-def format_conversation_for_llm(data, tweet_id, scraper: Scraper, individual_tweet=False):
-    """Convert a conversation tree into LLM-friendly format."""
+async def format_conversation_for_llm(data, tweet_id, scraper: Scraper, individual_tweet=False) -> str:
+    """
+    Convert a conversation tree into LLM-friendly format.
+
+    Args:
+        data: Dict containing Twitter data
+        tweet_id: ID of the tweet
+        scraper: Scraper instance
+        individual_tweet: Boolean flag for individual tweet formatting
+
+    Returns:
+        str: Formatted conversation
+    """
     users = data.get('globalObjects', {}).get('users', {})
 
-    def get_conversation_chain(current_id, processed_ids=None):
+    async def get_conversation_chain(current_id, processed_ids=None):
         if processed_ids is None:
             processed_ids = set()
 
@@ -203,7 +206,7 @@ def format_conversation_for_llm(data, tweet_id, scraper: Scraper, individual_twe
 
         print(f"Getting chain for {current_id}")
         processed_ids.add(current_id)
-        current_tweet = twitter_connector.get_tweet_by_id(str(current_id), scraper=scraper)
+        current_tweet = await twitter_connector.get_tweet_from_tweet_id(str(current_id), scraper=scraper)
         if not current_tweet:
             return []
 
@@ -227,21 +230,28 @@ def format_conversation_for_llm(data, tweet_id, scraper: Scraper, individual_twe
         ]
 
         if len(replying_to) > 0:
-            chain.extend(get_conversation_chain(replying_to, processed_ids))
+            chain.extend(await get_conversation_chain(replying_to, processed_ids))
 
         return chain
 
-    conversation = get_conversation_chain(tweet_id)
+    conversation = await get_conversation_chain(tweet_id)
 
     if not conversation:
         return "No conversation found."
 
     # Format the conversation for LLM
-    output = ["\nNotification (e.g. replies or mentions that Twitter flagged as important):"]
-    if len(conversation) == 1:
-        output[0] = output[0].replace("Notifications", "Notification")
+    output: List[str] = []
+
+    # Set the initial header based on individual_tweet flag
     if individual_tweet:
-        output = ["\nTweet Thread (the relevant tweet is first, the other tweets are in the conversation tree)"]
+        output.append("\nTweet Thread (the relevant tweet is first, the other tweets are in the conversation tree)")
+    else:
+        header = "\nNotification (e.g. replies or mentions that Twitter flagged as important):"
+        if len(conversation) == 1:
+            header = header.replace("Notifications", "Notification")
+        output.append(header)
+
+    # Add the conversation
     for i, tweet in enumerate(conversation, 1):
         reply_context = (
             f"[Replying to {next((t['username'] + ' tweet ' + t['id'] for t in conversation if t['id'] == tweet['reply_to']), 'unknown')}]"  # noqa
@@ -249,10 +259,7 @@ def format_conversation_for_llm(data, tweet_id, scraper: Scraper, individual_twe
             else "[Original tweet]"
         )
         tweet_id = f'[Tweet ID {tweet["id"]}]'
-        if len(conversation) == 1:
-            counter = ""
-        else:
-            counter = f"{i}. "
+        counter = "" if len(conversation) == 1 else f"{i}. "
         output.append(f"{counter}{tweet['username']} {reply_context} {tweet_id}:")
         output.append(f"   \"{tweet['text']}\"")
         output.append("")
@@ -260,33 +267,38 @@ def format_conversation_for_llm(data, tweet_id, scraper: Scraper, individual_twe
     return "\n".join(output)
 
 
-def find_all_conversations(data, scraper: Scraper) -> List[tuple[str, str]]:
+async def find_all_conversations(data, scraper: Scraper) -> List[Tuple[str, str]]:
     """Find and format all conversations in the data."""
-    if 'globalObjects' not in data or 'tweets' not in data['globalObjects']:
+    if "globalObjects" not in data or "tweets" not in data["globalObjects"]:
         return []
-    tweets = data['globalObjects']['tweets']
+
+    tweets: dict = data["globalObjects"]["tweets"]
     processed_roots = set()
     conversations = []
 
-    sorted_tweets = sorted(tweets.items(), key=lambda x: x[1]['created_at'], reverse=True)
+    sorted_tweets = sorted(tweets.items(), key=lambda x: x[1]["created_at"], reverse=True)
 
     for tweet_id, _ in sorted_tweets:
-        root_id = get_root_tweet_id(tweets, tweet_id, scraper)
+        root_id = await get_root_tweet_id(tweets, tweet_id, scraper)
+        if not root_id:
+            conversations.append(("Unable to find root tweet for conversation.", tweet_id))
+            continue
 
         if root_id not in processed_roots:
             processed_roots.add(root_id)
-            conversation = format_conversation_for_llm(data, tweet_id, scraper)
+            conversation = await format_conversation_for_llm(data, tweet_id, scraper)
             if conversation != "No conversation found.":
                 conversations.append((conversation, tweet_id))
+
     if not conversations:
         return []
 
     return conversations
 
 
-def get_tweets_by_user(username: str, scraper: Scraper) -> List[tuple[str, str]]:
+async def get_tweets_by_user(username: str, scraper: Scraper) -> List[tuple[str, str]]:
     """Get the most recent tweets for a particular username."""
-    user_id = twitter_connector.get_user_id(username)
+    user_id = await twitter_connector.get_user_id_from_username(username)
     user_tweets = scraper.tweets([user_id])  # type: ignore
     if 'errors' in user_tweets[0]:
         print(user_tweets[0])
@@ -302,14 +314,22 @@ def get_tweets_by_user(username: str, scraper: Scraper) -> List[tuple[str, str]]
     return formatted_tweets
 
 
-def get_timeline(account: Account) -> List[str]:
-    """Get timeline using the new Account-based approach."""
+def get_timeline(account: Account) -> List[Tuple[str, str]]:
+    """
+    Get timeline using the new Account-based approach.
+
+    Args:
+        account: Account instance
+
+    Returns:
+        List[Tuple[str, str]]: List of tuples containing (tweet_text, tweet_id)
+    """
     timeline = account.home_timeline(NUM_POSTS)
     if 'errors' in timeline[0]:
         print(timeline[0])
 
     tweets_info = parse_tweet_data(timeline[0])
-    filtered_timeline = []
+    filtered_timeline: List[Tuple[str, str]] = []
     for t in tweets_info:
         username = t["Author Information"]["username"]
         tweet_text = t["Tweet Information"]["text"]
@@ -319,17 +339,30 @@ def get_timeline(account: Account) -> List[str]:
     return filtered_timeline
 
 
-def fetch_notification_context(account: Account, scraper: Scraper, notifications_only=False) -> List[tuple[str, str]]:
-    """Fetch notification context using the new Account-based approach."""
-    context = []
+async def fetch_notification_context(
+    account: Account, scraper: Scraper, notifications_only=False
+) -> List[Tuple[str, str]]:
+    """
+    Fetch notification context using the new Account-based approach.
+
+    Args:
+        account: Account instance
+        scraper: Scraper instance
+        notifications_only: Whether to fetch only notifications
+
+    Returns:
+        List[Tuple[str, str]]: List of tuples containing (text, tweet_id)
+    """
+    context: List[Tuple[str, str]] = []
 
     # Get timeline posts
     if not notifications_only:
         print("getting timeline")
         timeline = get_timeline(account)
         context.extend(timeline)
+
     print("getting notifications")
     notifications = account.notifications()
     print("getting reply trees")
-    context.extend(find_all_conversations(notifications, scraper))
+    context.extend(await find_all_conversations(notifications, scraper))
     return context

@@ -1,0 +1,25 @@
+name: test
+twitter_handle: test_agent
+model_name: some_model
+quote_tweet_threshold: 0.1
+personality: |
+  Personality
+backstory: Backstory
+mannerisms: Mannerisms
+preferences: Preferences
+tone:
+  default: Default tone
+  aggressive: Aggressive tone
+  friendly: Friendly tone
+people_context: Context on person X
+project_context: Context on project Y
+other_context: Context on trending topics
+tweet_analysis_prompt: "Tweet analysis prompt"
+tweet_reply_prompt: "Tweet reply prompt"
+subtweet_analysis_prompt: "Subtweet analysis prompt"
+subtweet_creation_prompt: "Subtweet creation prompt"
+followers:
+  - username: follower1
+    reply_probability: 0.1
+  - username: follower2
+    reply_probability: 0.2

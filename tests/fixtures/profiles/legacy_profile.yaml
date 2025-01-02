@@ -1,0 +1,13 @@
+bot_name: test
+twitter_handle: test_agent
+model_name: some_model
+telegram_invite_link: https://telegram.invite/1
+interests: |
+  Interests
+goals: Goals
+preferences: Preferences
+image_tags: tag1, tag2, tag3
+tools_to_exclude:
+  - tool1
+  - tool2
+extra_prompt: Extra Prompt

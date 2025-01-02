@@ -1,8 +1,12 @@
-from echos_lab.engines import image_creator, agent_interests
-from echos_lab.crypto_lib import abis, query_balances
-from echos_lab.crypto_lib import crypto_helpers as ch
-from eth_account.signers.local import LocalAccount
 import time
+
+from eth_account.signers.local import LocalAccount
+
+from echos_lab.crypto_lib import abis
+from echos_lab.crypto_lib import crypto_helpers as ch
+from echos_lab.crypto_lib import query_balances
+from echos_lab.engines import image_creator
+from echos_lab.engines.personalities.profiles import LegacyAgentProfile
 
 
 def try_creating_image(symbol: str, name: str, description: str, image_attributes, num_tries=3) -> str:
@@ -22,13 +26,20 @@ def get_creation_fee() -> int:
         int: The creation fee amount in wei
     """
     contract = ch.web3.eth.contract(
-        address=ch.web3.to_checksum_address(ch.TOKEN_FACTORY_ADDRESS),
+        address=ch.web3.to_checksum_address(ch.ECHO_MANAGER_ADDRESS),
         abi=abis.meme_manager_abi,
     )
     return contract.functions.creationDeveloperFeeAmount().call()
 
 
-def create_memecoin(name: str, symbol: str, description: str, image_attributes: str, account: LocalAccount) -> bool:
+def create_memecoin(
+    agent_profile: LegacyAgentProfile,
+    name: str,
+    symbol: str,
+    description: str,
+    image_attributes: str,
+    account: LocalAccount,
+) -> bool:
     # Step 0: Get balance
     balances = query_balances.get_balances(account.address)
     for token in balances:
@@ -36,6 +47,7 @@ def create_memecoin(name: str, symbol: str, description: str, image_attributes: 
             return False
         if token['name'].lower() == name.lower():
             return False
+
     # Step 1: Create the image
     image_ipfs = try_creating_image(symbol, name, description, image_attributes)
     if image_ipfs == "":
@@ -47,7 +59,7 @@ def create_memecoin(name: str, symbol: str, description: str, image_attributes: 
 
     # Step 3: Prepare createToken call
     factory_contract = ch.web3.eth.contract(
-        address=ch.web3.to_checksum_address(ch.TOKEN_FACTORY_ADDRESS),
+        address=ch.web3.to_checksum_address(ch.ECHO_MANAGER_ADDRESS),
         abi=abis.meme_manager_abi,
     )
     direct_tx = factory_contract.functions.createAndBuyToken(
@@ -55,9 +67,9 @@ def create_memecoin(name: str, symbol: str, description: str, image_attributes: 
         symbol,
         description,
         image_ipfs,
-        f"https://twitter.com/{agent_interests.TWITTER_HANDLE}",
-        agent_interests.TG_INVITE_LINK,
-        f"https://echos.fun/{agent_interests.BOT_NAME.lower()}",
+        f"https://twitter.com/{agent_profile.twitter_handle}",
+        agent_profile.telegram_invite_link,
+        f"https://echos.fun/{agent_profile.bot_name.lower()}",
         ch.INITIAL_BUY,
     ).build_transaction(
         {  # type: ignore
@@ -65,7 +77,7 @@ def create_memecoin(name: str, symbol: str, description: str, image_attributes: 
             "nonce": ch.web3.eth.get_transaction_count(account.address),
             "gas": 6_000_000,
             "gasPrice": ch.GAS_PRICE,
-            "chainId": ch.CHAIN_ID,
+            "chainId": ch.ECHOS_CHAIN_ID,
             "value": creation_fee + ch.INITIAL_BUY,
         }
     )

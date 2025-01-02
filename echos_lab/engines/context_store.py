@@ -1,6 +1,7 @@
 import contextvars
+from typing import Any, Dict
 
-env_context = contextvars.ContextVar("env_context", default={})
+env_context: contextvars.ContextVar[Dict[str, Any]] = contextvars.ContextVar("env_context", default={})
 
 
 def set_env_var(key, value):

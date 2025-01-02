@@ -1,73 +1,49 @@
-from web3 import Web3
-import os
-from web3.types import TxParams, TxReceipt
-from eth_account.signers.local import LocalAccount
 from functools import lru_cache
+from pathlib import Path
 from typing import Dict
-from dotenv import load_dotenv
+
+from eth_account.signers.local import LocalAccount
+from web3 import Web3
+from web3.types import TxParams, TxReceipt
+
+from echos_lab.common.env import ECHOS_HOME_DIRECTORY
+from echos_lab.common.env import EnvironmentVariables as envs
+from echos_lab.common.env import get_env
 from echos_lab.crypto_lib import abis
 
-# get path to _this_ file
-BASE_PATH = os.path.dirname(os.path.abspath(__file__))
-load_dotenv(f"{BASE_PATH}/../.env")
+# w3 ETH Account Config
+ACCOUNT_PATH = Path(get_env(envs.CRYPTO_ACCOUNT_PATH, ECHOS_HOME_DIRECTORY / "account.json"))
+PRIVATE_KEY_PASSWORD = get_env(envs.CRYPTO_PRIVATE_KEY_PASSWORD, "password")
 
+# Private key is only needed if recovering an account
+PRIVATE_KEY = get_env(envs.CRYPTO_PRIVATE_KEY)
 
-ACCOUNT_PATH = os.getenv("CRYPTO_ACCOUNT_PATH", "")
-if ACCOUNT_PATH == "":
-    ACCOUNT_PATH = f"{BASE_PATH}/data/account.json"
-# create folders if needed
-os.makedirs(os.path.dirname(ACCOUNT_PATH), exist_ok=True)
+# Echos Chain Config
+ECHOS_CHAIN_ID = int(get_env(envs.ECHOS_CHAIN_ID, "4321"))
+ECHOS_CHAIN_RPC = get_env(envs.ECHOS_CHAIN_RPC, "https://rpc-echos-mainnet-0.t.conduit.xyz")
 
-CHAIN_ID = int(os.getenv("CHAIN_ID", "1"))
-if CHAIN_ID == 1:
-    raise ValueError("CHAIN_ID not found in .env file")
+# Echos Contracts
+ECHO_MANAGER_ADDRESS = get_env(envs.ECHOS_MANAGER_ADDRESS, "0x136BE3E45bBCc568F4Ec0bd47d58C799e7d1ae23")
+UNISWAP_ROUTER_ADDRESS = get_env(envs.ECHOS_UNISWAP_ROUTER_ADDRESS, "0x5190f096B204C051fcc561363E8DbE023FA0119f")
+UNISWAP_FACTORY_ADDRESS = get_env(envs.ECHOS_UNISWAP_FACTORY_ADDRESS, "0x17d70B17c3228f864D45eB964b2EDAB078106328")
+WUSDC_ADDRESS = get_env(envs.ECHOS_WUSDC_ADDRESS, "0x37234506262FF64d97694eA1F0461414c9e8A39e")
 
-CHAIN_RPC = os.getenv("CHAIN_RPC", "")
-if CHAIN_RPC == "":
-    raise ValueError("CHAIN_RPC not found in .env file")
-
-TOKEN_FACTORY_ADDRESS = os.getenv("TOKEN_FACTORY_ADDRESS", "")
-if TOKEN_FACTORY_ADDRESS == "":
-    raise ValueError("TOKEN_FACTORY_ADDRESS not found in .env file")
-
-UNISWAP_ROUTER_ADDRESS = os.getenv("UNISWAP_ROUTER_ADDRESS", "")
-if UNISWAP_ROUTER_ADDRESS == "":
-    raise ValueError("UNISWAP_ROUTER_ADDRESS not found in .env file")
-
-UNISWAP_FACTORY_ADDRESS = os.getenv("UNISWAP_FACTORY_ADDRESS", "")
-if UNISWAP_FACTORY_ADDRESS == "":
-    raise ValueError("UNISWAP_FACTORY_ADDRESS not found in .env file")
-
-WUSDC = os.getenv("WUSDC_ADDRESS", "")
-if WUSDC == "":
-    raise ValueError("WUSDC_ADDRESS not found in .env file")
-
-PRIVATE_KEY_PASSWORD = os.getenv("PRIVATE_KEY_PASSWORD", "")
-if PRIVATE_KEY_PASSWORD == "":
-    raise ValueError("PRIVATE_KEY_PASSWORD not found in .env file")
-
-# PRIVATE KEY OF BOT, in case we want to recover an account
-BOT_PK = os.getenv("BOT_PK", "")
-
+# Gas Config
 BASE_ASSET = "USDC"
 BASE_ASSET_NAME = "USD Coin"
 BASE_DECIMALS = 18
 BASE_PRICE = 1.0
-
 GAS_PRICE = Web3.to_wei(0.3, "gwei")
-
 ONE_BASE_TOKEN = 10**BASE_DECIMALS
 
+# Misc Config
 INITIAL_BUY = 10 * ONE_BASE_TOKEN
-
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
-web3 = Web3(Web3.HTTPProvider(CHAIN_RPC))
+web3 = Web3(Web3.HTTPProvider(ECHOS_CHAIN_RPC))
 
 if not web3.is_connected():
     raise ValueError("Could not connect to chain RPC")
-
-WUSDC_CHECKSUM = web3.to_checksum_address(WUSDC)
 
 
 def sign_and_send_tx(account: LocalAccount, direct_tx: TxParams) -> TxReceipt:
@@ -112,7 +88,7 @@ def approve_token_spending(account: LocalAccount, token_address: str, spender_ad
             "nonce": web3.eth.get_transaction_count(account.address),
             "gas": 100_000,  # Standard gas limit for approvals
             "gasPrice": GAS_PRICE,
-            "chainId": CHAIN_ID,
+            "chainId": ECHOS_CHAIN_ID,
         }
     )
 

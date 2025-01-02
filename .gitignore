@@ -4,12 +4,14 @@
 echos_lab/*env
 **/data/**/*
 **/*.session
-echos_lab/chromedriver
 echos_lab/engines/images/*
 echos_lab/engines/tweet_data/*.jsonl
 echos_lab/crypto_lib/*.json
+infinite_backrooms/logs/**/*.txt
+/db/
 
 **.DS_STORE
+/.idea
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -119,10 +121,8 @@ ipython_config.py
 #pdm.lock
 #   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
 #   in version control.
-#   https://pdm.fming.dev/latest/usage/project/#working-with-version-control
+#   https://pdm.fming.dev/#use-with-ide
 .pdm.toml
-.pdm-python
-.pdm-build/
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
 __pypackages__/
@@ -173,3 +173,7 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+
+echos_lab/engines/personalities/test.yaml
+echos_lab/engines/personalities/test-legacy.yaml
+echos_lab/testing/output

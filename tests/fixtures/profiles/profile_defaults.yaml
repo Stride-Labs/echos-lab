@@ -1,0 +1,13 @@
+name: test
+twitter_handle: test_agent
+model_name: some_model
+quote_tweet_threshold: 0.1
+personality: |
+  Personality
+backstory: Backstory
+mannerisms: Mannerisms
+preferences: Preferences
+tweet_analysis_prompt: "Tweet analysis prompt"
+tweet_reply_prompt: "Tweet reply prompt"
+subtweet_analysis_prompt: "Subtweet analysis prompt"
+subtweet_creation_prompt: "Subtweet creation prompt"
