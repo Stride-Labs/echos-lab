@@ -14,7 +14,12 @@ from echos_lab.engines.personalities import profiles
 from echos_lab.engines.personalities.profiles import AgentProfile, LegacyAgentProfile
 from echos_lab.slack.client import SlackClient
 from echos_lab.telegram import telegram_client
-from echos_lab.twitter import twitter_browser, twitter_pipeline, twitter_workflows, twitter_poster
+from echos_lab.twitter import (
+    twitter_browser,
+    twitter_pipeline,
+    twitter_poster,
+    twitter_workflows,
+)
 
 TWITTER_FLOW_LOOP_FREQUENCY = 120  # minutes
 REPLY_GUY_LOOP_FREQUENCY = 1  # minutes

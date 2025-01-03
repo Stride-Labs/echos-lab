@@ -3,9 +3,9 @@ from enum import Enum, auto
 
 from tweepy import Tweet
 
+from echos_lab.common.env import EnvironmentVariables as envs
+from echos_lab.common.env import get_env
 from echos_lab.db import models
-from echos_lab.common.env import get_env, EnvironmentVariables as envs
-
 
 RESPONSE_RATING_THRESHOLD_MENTIONS = int(get_env(envs.RESPONSE_RATING_THRESHOLD_MENTIONS, 4))
 RESPONSE_RATING_THRESHOLD_FOLLOWERS = int(get_env(envs.RESPONSE_RATING_THRESHOLD_FOLLOWERS, 7))

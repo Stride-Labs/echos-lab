@@ -2,13 +2,13 @@ from collections import OrderedDict
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from conftest import build_tweet, build_tweet_mention, build_db_tweet
+from conftest import build_db_tweet, build_tweet, build_tweet_mention
 from sqlalchemy.orm import Session
 
 from echos_lab.db import db_connector, models
 from echos_lab.db.models import QueryType
 from echos_lab.twitter import twitter_pipeline
-from echos_lab.twitter.types import TweetExclusions, FollowerTweet
+from echos_lab.twitter.types import FollowerTweet, TweetExclusions
 
 
 @pytest.mark.asyncio

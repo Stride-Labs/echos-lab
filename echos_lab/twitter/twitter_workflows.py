@@ -1,12 +1,17 @@
-from sqlalchemy.orm import Session
 from typing import cast
+
+from sqlalchemy.orm import Session
 
 from echos_lab.common.logger import logger
 from echos_lab.common.utils import with_db
-from echos_lab.engines.personalities.profiles import AgentProfile
 from echos_lab.engines import post_maker, prompts
+from echos_lab.engines.personalities.profiles import AgentProfile
 from echos_lab.twitter import twitter_client, twitter_pipeline, twitter_poster
-from echos_lab.twitter.types import HydratedTweet, RESPONSE_RATING_THRESHOLD_MENTIONS, MEME_RATING_THRESHOLD
+from echos_lab.twitter.types import (
+    MEME_RATING_THRESHOLD,
+    RESPONSE_RATING_THRESHOLD_MENTIONS,
+    HydratedTweet,
+)
 
 
 @with_db

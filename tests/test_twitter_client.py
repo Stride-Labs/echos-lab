@@ -18,7 +18,7 @@ from tweepy.asynchronous import AsyncClient
 
 from echos_lab.engines import prompts
 from echos_lab.twitter import twitter_client
-from echos_lab.twitter.types import HydratedTweet, TweetMention, MentionType
+from echos_lab.twitter.types import HydratedTweet, MentionType, TweetMention
 
 
 @pytest.mark.asyncio

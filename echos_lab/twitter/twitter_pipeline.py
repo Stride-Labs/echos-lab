@@ -6,7 +6,7 @@ from echos_lab.common.logger import logger
 from echos_lab.db import db_connector, models
 from echos_lab.db.models import QueryType, TwitterQueryCheckpoint, TwitterUser
 from echos_lab.twitter import twitter_client, twitter_helpers
-from echos_lab.twitter.types import TweetExclusions, TweetMention, FollowerTweet
+from echos_lab.twitter.types import FollowerTweet, TweetExclusions, TweetMention
 
 
 def get_checkpoint(

@@ -13,15 +13,20 @@ from echos_lab.db.models import TweetType
 from echos_lab.engines import full_agent_tools, post_maker, prompts
 from echos_lab.engines.personalities.profiles import AgentProfile
 from echos_lab.engines.prompts import TweetEvaluation
-from echos_lab.twitter import twitter_pipeline, twitter_auth, twitter_helpers, twitter_client
+from echos_lab.twitter import (
+    twitter_auth,
+    twitter_client,
+    twitter_helpers,
+    twitter_pipeline,
+)
 from echos_lab.twitter.types import (
+    MEME_RATING_THRESHOLD,
+    RESPONSE_RATING_THRESHOLD_FOLLOWERS,
+    RESPONSE_RATING_THRESHOLD_MENTIONS,
     FollowerTweet,
     HydratedTweet,
     MentionType,
     TweetMention,
-    RESPONSE_RATING_THRESHOLD_FOLLOWERS,
-    RESPONSE_RATING_THRESHOLD_MENTIONS,
-    MEME_RATING_THRESHOLD,
 )
 
 

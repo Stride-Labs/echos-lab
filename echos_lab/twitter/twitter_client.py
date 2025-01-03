@@ -4,10 +4,10 @@ from tweepy import Response, Tweet, User
 
 from echos_lab.twitter import twitter_auth
 from echos_lab.twitter.types import (
+    TWEET_FIELDS,
     HydratedTweet,
     ReferenceTypes,
     TweetMention,
-    TWEET_FIELDS,
 )
 
 
