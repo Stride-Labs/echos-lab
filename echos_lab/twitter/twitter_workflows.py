@@ -63,7 +63,7 @@ async def run_reply_guy_followers_cycle(db: Session, agent_profile: AgentProfile
     user_id_mapping = await twitter_pipeline.get_user_ids_from_usernames(db, usernames)
 
     # Get all tweets
-    tweets = await twitter_client.get_all_follower_tweets(
+    tweets = await twitter_pipeline.get_all_follower_tweets(
         db=db,
         agent_name=agent_profile.name,
         user_id_mapping=user_id_mapping,

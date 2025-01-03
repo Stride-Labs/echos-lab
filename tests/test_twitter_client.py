@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from unittest.mock import AsyncMock, Mock, call, patch
 
 import fixtures.prompts as test_prompts
@@ -394,52 +393,6 @@ class TestGetTweetsFromUserId:
         actual_tweets, actual_tweet_id = await twitter_client.get_tweets_from_user_id(user_id)
         assert actual_tweets == []
         assert actual_tweet_id is None
-
-
-@pytest.mark.asyncio
-class TestGetAllFollowerTweets:
-    @patch("echos_lab.twitter.twitter_pipeline.get_user_latest_tweets")
-    async def test_get_all_follower_tweets_success(self, mock_get_user_tweets: AsyncMock, db: Session):
-        """
-        Tests retrieving tweets from multiple followers
-        """
-        since_time = "1"
-        agent_name = "agent"
-
-        # Setup ordered user mapping
-        # It must be an ordered dict in order to line up with the mocked side effects
-        userA, userB = "userA", "userB"
-        user_id_mapping = OrderedDict([(userA, 1), (userB, 2)])
-
-        # Build test tweets
-        latest_tweet_A = 200
-        latest_tweet_B = 400
-        userA_tweets = [
-            build_db_tweet(100, "tweet1", conversation_id=100),
-            build_db_tweet(latest_tweet_A, "tweet2", conversation_id=latest_tweet_A),
-        ]
-        userB_tweets = [
-            build_db_tweet(300, "tweet3", conversation_id=300),
-            build_db_tweet(latest_tweet_B, "tweet4", conversation_id=latest_tweet_B),
-        ]
-        expected_tweets = [
-            twitter_client.FollowerTweet(tweet=userA_tweets[0], username=userA),
-            twitter_client.FollowerTweet(tweet=userA_tweets[1], username=userA),
-            twitter_client.FollowerTweet(tweet=userB_tweets[0], username=userB),
-            twitter_client.FollowerTweet(tweet=userB_tweets[1], username=userB),
-        ]
-
-        # Mock DB responses
-        mock_get_user_tweets.side_effect = [userA_tweets, userB_tweets]
-
-        # Get all follower tweets
-        actual_tweets = await twitter_client.get_all_follower_tweets(
-            db=db,
-            agent_name=agent_name,
-            user_id_mapping=user_id_mapping,  # type: ignore
-            since_time=since_time,
-        )
-        assert actual_tweets == expected_tweets
 
 
 @pytest.mark.asyncio
