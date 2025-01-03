@@ -82,8 +82,7 @@ This will install `echos_lab` as a local package and install all necessary depen
 - Replicate API token (for image generation)
 - See [credentials](https://github.com/Stride-Labs/echos-lab/blob/main/docs/credentials.md) for more instructions
 
-4. Initialize the bot:
-   `echos reply-guy`
+4. See [Getting Started Guide](https://github.com/Stride-Labs/echos-lab/blob/main/docs/reply-guy.md) to create your first bot!
 
 ### Project Structure
 

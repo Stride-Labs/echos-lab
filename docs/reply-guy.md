@@ -1,4 +1,4 @@
-# Deploying Your Echo Bot
+# Deploying an Echo
 
 This guide walks you through deploying your own Echo bot. Echo bots are AI-powered agents, with a custom personality, that can interact on Twitter. You can use Echo bots to promote your own projects, automatically answer community questions, or create an engaging social media presence or twin.
 
