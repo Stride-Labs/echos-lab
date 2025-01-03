@@ -5,7 +5,9 @@ logging.getLogger("telethon").setLevel(logging.WARNING)
 
 from telethon import TelegramClient  # noqa: E402
 from telethon.tl.functions.channels import CreateChannelRequest  # noqa: E402
-from telethon.tl.functions.messages import EditChatDefaultBannedRightsRequest  # noqa: E402
+from telethon.tl.functions.messages import (  # noqa: E402
+    EditChatDefaultBannedRightsRequest,
+)
 from telethon.tl.types import ChatBannedRights  # noqa: E402
 
 from echos_lab.common.env import EnvironmentVariables as envs  # noqa: E402

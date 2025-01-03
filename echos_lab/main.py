@@ -4,7 +4,8 @@ from datetime import datetime, timedelta, timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
-from echos_lab.common.env import EnvironmentVariables as envs, ECHOS_HOME_DIRECTORY, PROJECT_ROOT
+from echos_lab.common.env import ECHOS_HOME_DIRECTORY, PROJECT_ROOT
+from echos_lab.common.env import EnvironmentVariables as envs
 from echos_lab.common.env import get_env_or_raise
 from echos_lab.common.logger import logger
 from echos_lab.crypto import crypto_connector

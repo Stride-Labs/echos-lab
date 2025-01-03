@@ -1,7 +1,7 @@
 import asyncio
+import re
 
 import click
-import re
 
 from echos_lab import main
 from echos_lab.crypto import crypto_connector
