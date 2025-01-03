@@ -9,7 +9,7 @@ from echos_lab.db.migrations import json_to_postgres
 from echos_lab.telegram import telegram_groups
 from echos_lab.testing import scratch as scratchpad
 from echos_lab.testing import twitter_replies as testing_twitter_replies
-from echos_lab.twitter import auth, twitter_browser, twitter_helpers
+from echos_lab.twitter import twitter_auth, twitter_browser, twitter_helpers
 
 
 @click.group()
@@ -146,7 +146,7 @@ def oauth1():
     The process generates a link, which the user must visit to authorize the app.
     Then, they must send the PIN back to the script to get the access tokens.
     """
-    auth.get_twitter_access_tokens()
+    twitter_auth.get_twitter_access_tokens()
 
 
 @testing.command("generate-examples")
