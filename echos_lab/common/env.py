@@ -8,9 +8,6 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent
 DOT_ENV_PATH = PROJECT_ROOT / ".env"
 load_dotenv(DOT_ENV_PATH)
 
-ECHOS_HOME_DIRECTORY = Path(os.getenv("ECHOS_HOME_DIRECTORY", "~/.echos")).expanduser()
-ECHOS_HOME_DIRECTORY.mkdir(exist_ok=True)
-
 
 class EnvironmentVariables:
     # Core echos config
@@ -121,3 +118,9 @@ def get_env_or_raise(variable_name: str) -> str:
     if not value:
         raise EnvironmentError(f"Environment variable {variable_name} not found, specify in .env file")
     return value
+
+
+ECHOS_HOME_DIRECTORY = Path(os.getenv(EnvironmentVariables.ECHOS_HOME_DIRECTORY, "~/.echos")).expanduser()
+ECHOS_HOME_DIRECTORY.mkdir(exist_ok=True)
+
+AGENT_NAME = get_env_or_raise(EnvironmentVariables.AGENT_NAME)
