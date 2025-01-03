@@ -9,7 +9,6 @@ from conftest import (
     build_tweet,
     build_tweet_evaluation,
 )
-from sqlalchemy.orm import Session
 from tweepy.asynchronous import AsyncClient
 
 from echos_lab.engines.personalities.profiles import FollowedAccount
@@ -224,7 +223,6 @@ class TestReplyToMentions:
         mock_post: AsyncMock,
         mock_generate_reply: AsyncMock,
         mock_random: Mock,
-        db: Session,
     ):
         """
         Tests conditionally replying to some mentions in a new thread
@@ -288,7 +286,7 @@ class TestReplyToMentions:
 
         # Call reply
         mentions = [mention1, mention2, mention3, mention4]
-        await twitter_poster.reply_to_mentions(db, agent_profile=agent_profile, mentions=mentions)
+        await twitter_poster.reply_to_mentions(agent_profile=agent_profile, mentions=mentions)
 
         # Confirm we responded twice
         calls = [
@@ -325,7 +323,6 @@ class TestReplyToMentions:
         mock_post: AsyncMock,
         mock_generate_reply: AsyncMock,
         mock_random: Mock,
-        db: Session,
     ):
         """
         Tests conditionally quote tweeting one of the replies
@@ -353,7 +350,7 @@ class TestReplyToMentions:
         mock_has_high_follower_count.return_value = False
 
         # Call reply
-        await twitter_poster.reply_to_mentions(db, agent_profile=agent_profile, mentions=[mention])
+        await twitter_poster.reply_to_mentions(agent_profile=agent_profile, mentions=[mention])
 
         # Confirm calls
         mock_post.assert_called_with(
@@ -372,7 +369,6 @@ class TestReplyToMentions:
         mock_post: AsyncMock,
         mock_generate_reply: AsyncMock,
         mock_random: Mock,
-        db: Session,
     ):
         """
         Tests conditionally ignoring responses below the response rating
@@ -406,7 +402,7 @@ class TestReplyToMentions:
         mock_has_high_follower_count.return_value = False
 
         # Call reply
-        await twitter_poster.reply_to_mentions(db, agent_profile=agent_profile, mentions=mentions)
+        await twitter_poster.reply_to_mentions(agent_profile=agent_profile, mentions=mentions)
 
         # Confirm calls - ony the first mention should have a response
         mock_post.assert_called_with(
@@ -428,7 +424,6 @@ class TestReplyToFollowers:
         mock_post: AsyncMock,
         mock_generate_reply: AsyncMock,
         mock_random: Mock,
-        db: Session,
     ):
         """
         Tests conditionally replying to a followed account in a new thread
@@ -467,7 +462,7 @@ class TestReplyToFollowers:
 
         # Call reply
         tweets = [follower_tweet1, follower_tweet2]
-        await twitter_poster.reply_to_followers(db, agent_profile=agent_profile, tweets=tweets)
+        await twitter_poster.reply_to_followers(agent_profile=agent_profile, tweets=tweets)
 
         # Confirm calls
         assert mock_post.call_count == 2
@@ -500,7 +495,6 @@ class TestReplyToFollowers:
         mock_post: AsyncMock,
         mock_generate_reply: AsyncMock,
         mock_random: Mock,
-        db: Session,
     ):
         """
         Tests conditionally quote tweeting a tweet from a follower
@@ -529,7 +523,7 @@ class TestReplyToFollowers:
         ]
 
         # Call reply
-        await twitter_poster.reply_to_followers(db, agent_profile=agent_profile, tweets=[follower_tweet])
+        await twitter_poster.reply_to_followers(agent_profile=agent_profile, tweets=[follower_tweet])
 
         # Confirm calls
         mock_post.assert_called_with(
@@ -548,7 +542,6 @@ class TestReplyToFollowers:
         mock_post: AsyncMock,
         mock_generate_reply: AsyncMock,
         mock_random: Mock,
-        db: Session,
     ):
         """
         Tests randomly skipping a reply to a follower
@@ -583,7 +576,7 @@ class TestReplyToFollowers:
 
         # Call reply
         tweets = [follower_tweet1, follower_tweet2]
-        await twitter_poster.reply_to_followers(db, agent_profile=agent_profile, tweets=tweets)
+        await twitter_poster.reply_to_followers(agent_profile=agent_profile, tweets=tweets)
 
         # Confirm calls
         mock_post.assert_called_once_with(

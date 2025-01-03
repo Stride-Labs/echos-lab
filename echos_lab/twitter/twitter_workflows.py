@@ -35,7 +35,7 @@ async def run_reply_guy_mentions_cycle(db: Session, agent_profile: AgentProfile,
     logger.info(f"Found {len(mentions)} mention{'' if len(mentions) == 1 else 's'}...")
 
     # Generate and post responses to each mention
-    await twitter_poster.reply_to_mentions(db=db, agent_profile=agent_profile, mentions=mentions)
+    await twitter_poster.reply_to_mentions(agent_profile=agent_profile, mentions=mentions)
 
 
 @with_db
@@ -71,11 +71,11 @@ async def run_reply_guy_followers_cycle(db: Session, agent_profile: AgentProfile
     )
 
     # Generate and post responses to each tweet
-    await twitter_poster.reply_to_followers(db=db, agent_profile=agent_profile, tweets=tweets)
+    await twitter_poster.reply_to_followers(agent_profile=agent_profile, tweets=tweets)
 
 
 @with_db
-async def reply_to_tweet(db: Session, agent_profile: AgentProfile, tweet_id: int) -> int | None:
+async def reply_to_tweet(agent_profile: AgentProfile, tweet_id: int) -> int | None:
     """
     Generates and posts a reply guy response to a specific tweet
     Returns the tweet ID of the response

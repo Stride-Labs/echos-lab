@@ -356,7 +356,7 @@ async def post_tweet_response(
 
 
 # TODO: consolidate this with reply_to_tweet
-async def reply_to_mentions(db: Session, agent_profile: AgentProfile, mentions: list[TweetMention]):
+async def reply_to_mentions(agent_profile: AgentProfile, mentions: list[TweetMention]):
     """
     Generates and posts a reply guy response to all mentions in the list
     The response will randomly be in the form of a reply tweet or quote tweet
@@ -398,7 +398,7 @@ async def reply_to_mentions(db: Session, agent_profile: AgentProfile, mentions: 
         )
 
 
-async def reply_to_followers(db: Session, agent_profile: AgentProfile, tweets: list[FollowerTweet]):
+async def reply_to_followers(agent_profile: AgentProfile, tweets: list[FollowerTweet]):
     """
     Generates and posts a reply guy response to all tweets in the list
     """
