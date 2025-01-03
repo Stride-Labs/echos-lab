@@ -5,8 +5,7 @@ from typing import Literal
 import yaml
 
 from echos_lab.common.env import ECHOS_HOME_DIRECTORY
-from echos_lab.common.env import EnvironmentVariables as envs
-from echos_lab.common.env import get_env
+from echos_lab.common.env import get_env, get_env_or_raise, EnvironmentVariables as envs
 
 BASE_AGENT_CONFIG = "agent-base.yaml"
 DEFAULT_AGENT_PROFILE = "agent-profile.yaml"
@@ -260,3 +259,10 @@ def get_legacy_agent_profile() -> LegacyAgentProfile:
     """
     agent_name = get_env(envs.LEGACY_AGENT_NAME)
     return LegacyAgentProfile.from_yaml(agent_name)
+
+
+def get_agent_name() -> str:
+    """
+    Returns the name of the agent from the environment variable
+    """
+    return get_env_or_raise(envs.AGENT_NAME)

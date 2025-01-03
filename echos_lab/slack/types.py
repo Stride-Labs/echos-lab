@@ -10,6 +10,7 @@ from slack_bolt.context.say.async_say import AsyncSay
 from sqlalchemy.orm import Session
 
 from echos_lab.db import db_setup
+from echos_lab.engines import profiles
 
 
 @dataclass
@@ -61,8 +62,9 @@ class SlackHandler:
           - Prevents duplicate message processing
         """
 
-        # Message must start with with either: "!{command}" or "! {command}"
-        message_regex = re.compile(rf"^!\s?{re.escape(self.command)}")
+        # Message must start with: "!{agent-name} {command}"
+        agent_name = profiles.get_agent_name()
+        message_regex = re.compile(rf"^!{agent_name} {re.escape(self.command)}")
 
         @app.message(message_regex)  # filters for messages that match the above regex
         async def wrapped_handler(message: dict, say: AsyncSay):

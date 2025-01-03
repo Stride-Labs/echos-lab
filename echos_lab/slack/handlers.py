@@ -4,8 +4,6 @@ from slack_bolt.context.say.async_say import AsyncSay
 from sqlalchemy.orm import Session
 
 from echos_lab import main
-from echos_lab.common.env import EnvironmentVariables as envs
-from echos_lab.common.env import get_env
 from echos_lab.common.logger import logger
 from echos_lab.engines import profiles
 from echos_lab.slack.types import SlackHandler, SlackMessage
@@ -16,27 +14,23 @@ async def _reply_to_tweet_callback(db: Session, message: SlackMessage, say: Asyn
     """
     Callback handler for replying forcing a reply to a tweet
 
-    Usage:       !reply {agent-name} {tweet-link}
-    Ex:          !reply vito https://x.com/someuser/status/12345
-    Raw Message: !reply vito <https://x.com/someuser/status/12345>
+    Usage:       !{agent-name} {tweet-link}
+    Ex:          !vito reply https://x.com/someuser/status/12345
+    Raw Message: !vito reply <https://x.com/someuser/status/12345>
     """
-    help_command = "```\n!reply {agent-name} {tweet-link}\nEx: !reply vito https://x.com/someuser/status/12345\n```\n"
+    agent_name = profiles.get_agent_name()
+    help_command = "```\n!{agent-name} reply {tweet-link}\nEx: !vito reply https://x.com/someuser/status/12345\n```\n"
 
     # Confirm the message was sent with a valid format
-    pattern = re.compile(r"^!reply (\w+) <https://x\.com/[a-zA-Z0-9_]+/status/(\d+)>")
+    pattern = re.compile(rf"^!{agent_name} reply <https://x\.com/[a-zA-Z0-9_]+/status/(\d+)>")
     match = re.match(pattern, message.text)
     if match is None:
-        response = f"Invalid `!reply` command, should be format:\n{help_command}"
+        response = f"Invalid `reply` command, should be format:\n{help_command}"
         await say(response, thread_ts=message.id)
         return
 
     # Extract the agent name and tweet ID
-    agent_name, tweet_id = match.groups()  # type: ignore
-
-    # TODO: Prevent ack in this case
-    # Confirm agent from message matches the currently running agent
-    if agent_name != get_env(envs.AGENT_NAME):
-        return
+    (tweet_id,) = match.groups()  # type: ignore
 
     # Grab link from back half of message
     tweet_link = message.text.split(" ")[-1].replace("<", "").replace(">", "")
@@ -57,42 +51,38 @@ async def _subtweet_callback(db: Session, message: SlackMessage, say: AsyncSay):
     """
     Callback handler for sending a subtweet based on a given topic
 
-    Usage:       !subtweet {agent-name} [--dry-run] {topic}
+    Usage:       !{agent-name} subtweet [--dry-run] {topic}
 
     Options:
         --dry-run    Preview the tweet without posting it to Twitter
 
     Examples:
-        !subtweet vito There is beef going on right now between X and Y
-        !subtweet vito --dry-run Let me test this tweet first
+        !vito subtweet There is beef going on right now between X and Y
+        !vito subtweet --dry-run Let me test this tweet first
     """
+    agent_name = profiles.get_agent_name()
     help_command = (
         "```\n"
-        "!subtweet {agent-name} [--dry-run] {topic}\n\n"
+        "!{agent-name} subtweet [--dry-run] {topic}\n\n"
         "Options:\n"
         "  --dry-run    Preview the tweet without posting it to Twitter\n\n"
         "Examples:\n"
-        "  !subtweet vito There is beef going on right now between X and Y\n"
-        "  !subtweet vito --dry-run Let me test this tweet first\n"
+        "  !vito subtweet There is beef going on right now between X and Y\n"
+        "  !vito subtweet --dry-run Let me test this tweet first\n"
         "```\n"
     )
 
     # Confirm the message was sent with a valid format
-    pattern = re.compile(r"^!subtweet (\w+)( --dry-run |\s)(.*)")
+    pattern = re.compile(rf"^!{agent_name} subtweet( --dry-run |\s)(.*)")
     match = re.match(pattern, message.text)
     if match is None:
-        response = f"Invalid `!subtweet` command, should be format:\n{help_command}"
+        response = f"Invalid `subtweet` command, should be format:\n{help_command}"
         await say(response, thread_ts=message.id)
         return
 
     # Extract the agent name and subtweet topic
-    agent_name, dry_run_flag, topic = match.groups()
+    dry_run_flag, topic = match.groups()
     dry_run = dry_run_flag.strip() == "--dry-run"
-
-    # TODO: Prevent ack in this case
-    # Confirm agent from message matches the currently running agent
-    if agent_name != get_env(envs.AGENT_NAME):
-        return
 
     # Generate and post the subtweet
     subtweet_text, subtweet_id = await main.subtweet(topic, dry_run=dry_run)
