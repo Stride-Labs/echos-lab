@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
-from echos_lab.common.env import EnvironmentVariables as envs
+from echos_lab.common.env import EnvironmentVariables as envs, ECHOS_HOME_DIRECTORY, PROJECT_ROOT
 from echos_lab.common.env import get_env_or_raise
 from echos_lab.common.logger import logger
 from echos_lab.crypto import crypto_connector
@@ -22,6 +22,33 @@ from echos_lab.twitter import (
 
 TWITTER_FLOW_LOOP_FREQUENCY = 120  # minutes
 REPLY_GUY_LOOP_FREQUENCY = 1  # minutes
+
+
+def init_agent_profile(agent_name: str, twitter_handle: str):
+    """
+    Initializes the .echos home directory with an example agent
+    """
+    # Ensure the agent file doesn't already exist
+    agent_file = ECHOS_HOME_DIRECTORY / f"{agent_name}.yaml"
+    if agent_file.exists():
+        print(f"ERROR: An agent profile named '{agent_name}' already exists, skipping initialization")
+        return
+
+    # Read the example agent yaml
+    example_agent_file = PROJECT_ROOT / "agent-profile.yaml.example"
+    with open(example_agent_file, "r") as file:
+        example_profile = file.read()
+
+    # Update fields
+    example_profile = example_profile.replace("name: chad", f"name: {agent_name}")
+    example_profile = example_profile.replace("twitter_handle: chad_echo", f"twitter_handle: {twitter_handle}")
+
+    # Write the updated yaml
+    with open(agent_file, "w") as file:
+        file.write(example_profile)
+
+    print("Agent profile created! 🚀")
+    print(f"Customize the profile in {agent_file}")
 
 
 async def setup_legacy_app() -> LegacyAgentProfile:
