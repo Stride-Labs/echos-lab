@@ -9,8 +9,8 @@ from slack_bolt.async_app import AsyncApp
 from slack_bolt.context.say.async_say import AsyncSay
 from sqlalchemy.orm import Session
 
-from echos_lab.common.env import AGENT_NAME
 from echos_lab.db import db_setup
+from echos_lab.engines import profiles
 
 
 @dataclass
@@ -63,7 +63,8 @@ class SlackHandler:
         """
 
         # Message must start with: "!{agent-name} {command}"
-        message_regex = re.compile(rf"^!{AGENT_NAME} {re.escape(self.command)}")
+        agent_name = profiles.get_agent_name()
+        message_regex = re.compile(rf"^!{agent_name} {re.escape(self.command)}")
 
         @app.message(message_regex)  # filters for messages that match the above regex
         async def wrapped_handler(message: dict, say: AsyncSay):

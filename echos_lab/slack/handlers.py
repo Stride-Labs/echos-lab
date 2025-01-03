@@ -4,7 +4,6 @@ from slack_bolt.context.say.async_say import AsyncSay
 from sqlalchemy.orm import Session
 
 from echos_lab import main
-from echos_lab.common.env import AGENT_NAME
 from echos_lab.common.logger import logger
 from echos_lab.engines import profiles
 from echos_lab.slack.types import SlackHandler, SlackMessage
@@ -19,10 +18,11 @@ async def _reply_to_tweet_callback(db: Session, message: SlackMessage, say: Asyn
     Ex:          !vito reply https://x.com/someuser/status/12345
     Raw Message: !vito reply <https://x.com/someuser/status/12345>
     """
+    agent_name = profiles.get_agent_name()
     help_command = "```\n!{agent-name} reply {tweet-link}\nEx: !vito reply https://x.com/someuser/status/12345\n```\n"
 
     # Confirm the message was sent with a valid format
-    pattern = re.compile(rf"^!{AGENT_NAME} reply <https://x\.com/[a-zA-Z0-9_]+/status/(\d+)>")
+    pattern = re.compile(rf"^!{agent_name} reply <https://x\.com/[a-zA-Z0-9_]+/status/(\d+)>")
     match = re.match(pattern, message.text)
     if match is None:
         response = f"Invalid `reply` command, should be format:\n{help_command}"
@@ -60,6 +60,7 @@ async def _subtweet_callback(db: Session, message: SlackMessage, say: AsyncSay):
         !vito subtweet There is beef going on right now between X and Y
         !vito subtweet --dry-run Let me test this tweet first
     """
+    agent_name = profiles.get_agent_name()
     help_command = (
         "```\n"
         "!{agent-name} subtweet [--dry-run] {topic}\n\n"
@@ -72,7 +73,7 @@ async def _subtweet_callback(db: Session, message: SlackMessage, say: AsyncSay):
     )
 
     # Confirm the message was sent with a valid format
-    pattern = re.compile(rf"^!{AGENT_NAME} subtweet( --dry-run |\s)(.*)")
+    pattern = re.compile(rf"^!{agent_name} subtweet( --dry-run |\s)(.*)")
     match = re.match(pattern, message.text)
     if match is None:
         response = f"Invalid `subtweet` command, should be format:\n{help_command}"
