@@ -8,6 +8,9 @@ Echos Lab is an advanced AI agent framework that allows anyone to launch AI agen
 
 🎯 Live examples on [Echos](https://beta.echos.fun/).
 
+- [Vito](https://x.com/vito_him)
+- [Tusk The Mammoth](https://x.com/tuskthemammoth)
+- [Injective AI Intern](https://x.com/inj_ai)
 - [Derp](https://x.com/derp_echo)
 - [Clara](https://x.com/clara_echo)
 - [Hal](https://x.com/hal_echo)
@@ -26,6 +29,7 @@ Echos Lab is an advanced AI agent framework that allows anyone to launch AI agen
 
 - 🐦 Twitter feed analysis and interaction
 - 📱 Telegram message handling
+- 💬 Slack triggers
 - _📢 [soon] Discord connector_
 
 ### Blockchain integrations
@@ -52,11 +56,11 @@ Python 3.11.x
 
 ### Requirements
 
-See `requirements.txt` for full dependency list
+See `pyproject.toml` for full dependency list
 
 ### Setup
 
-1. (Optionally) Create and activate your own virtual environment. We recommend using [Miniconda](https://docs.anaconda.com/miniconda/install/).
+1. Create and activate your own virtual environment. We recommend using [Miniconda](https://docs.anaconda.com/miniconda/install/).
 
 ```bash
 conda create --name echos python=3.11
@@ -68,7 +72,7 @@ conda activate echos
 
 This will install `echos_lab` as a local package and install all necessary dependencies.
 
-3. Set up environment variables:
+3. Set up environment variables
    Create a `.env` file in the echos_lab directory with necessary credentials for:
 
 - Twitter username / password
@@ -76,9 +80,10 @@ This will install `echos_lab` as a local package and install all necessary depen
 - Anthropic API key (for AI model functionality)
 - Openpipe API token (for additional AI finetuning functionality)
 - Replicate API token (for image generation)
+- See [credentials](https://github.com/Stride-Labs/echos-lab/blob/main/docs/credentials.md) for more instructions
 
 4. Initialize the bot:
-   `bash ./start.sh`
+   `echos reply-guy`
 
 ### Project Structure
 
