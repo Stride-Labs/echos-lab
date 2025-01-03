@@ -1,13 +1,17 @@
-# we use telethon to create a group chat, as bots can't create groups
-from telethon import TelegramClient
-from telethon.tl.functions.channels import CreateChannelRequest
-from telethon.tl.functions.messages import EditChatDefaultBannedRightsRequest
-from telethon.tl.types import ChatBannedRights
+import logging
 
-from echos_lab.common.env import EnvironmentVariables as envs
-from echos_lab.common.env import get_env_or_raise
-from echos_lab.common.logger import logger
-from echos_lab.telegram import telegram_client
+# Silence Telethon's libssl info log
+logging.getLogger("telethon").setLevel(logging.WARNING)
+
+from telethon import TelegramClient  # noqa: E402
+from telethon.tl.functions.channels import CreateChannelRequest  # noqa: E402
+from telethon.tl.functions.messages import EditChatDefaultBannedRightsRequest  # noqa: E402
+from telethon.tl.types import ChatBannedRights  # noqa: E402
+
+from echos_lab.common.env import EnvironmentVariables as envs  # noqa: E402
+from echos_lab.common.env import get_env_or_raise  # noqa: E402
+from echos_lab.common.logger import logger  # noqa: E402
+from echos_lab.telegram import telegram_client  # noqa: E402
 
 
 async def create_group_with_admins(
@@ -77,6 +81,8 @@ async def create_group_with_admins(
 async def create_test_group():
     """
     Creates a personal telegram group for testing
+
+    Telethon is used to create groups since bots can't create groups
     """
     # Create telegram app
     app = telegram_client.get_telegram_app()
