@@ -1,4 +1,5 @@
 import asyncio
+import re
 
 import click
 
@@ -28,6 +29,29 @@ def testing():
 def db():
     """Database commands"""
     pass
+
+
+@cli.command("init")
+@click.option("--name", required=True, help="Name of the agent")
+@click.option("--twitter-handle", required=True, help="Twitter handle of agent")
+def init(name: str, twitter_handle: str):
+    """Initailizes the ~/.echos directory with an example agent personality"""
+    # Validate name
+    if not re.match(r'^[a-zA-Z0-9\-_]+$', name):
+        raise click.BadParameter("Name must contain only letters, numbers, hyphens and underscores")
+
+    # Remove @ from handle if it's provided
+    if twitter_handle.startswith("@"):
+        twitter_handle = twitter_handle[1:]
+
+    # Validate twitter handle
+    username = twitter_handle[1:]
+    if not re.match(r'^[A-Za-z0-9_]{1,15}$', username):
+        raise click.BadParameter(
+            "Twitter handle must be 1-15 characters and contain only letters, numbers and underscores"
+        )
+
+    main.init_agent_profile(name, twitter_handle=twitter_handle)
 
 
 @cli.command("login")

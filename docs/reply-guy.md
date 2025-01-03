@@ -63,100 +63,23 @@ Before starting, ensure you have:
 
 ## Part 3: Agent Profile
 
-## Part 4: Cloud Deployment
-
-You have two options for deploying your Echo bot: using
-Docker Hub (recommended for simplicity) or Google Container
-Registry (if you're using Google Cloud).
-
-### Option 1: Docker Hub Deployment (Recommended)
-
-1. Add these commands to your Makefile:
-
-   ```makefile
-   DOCKER_USERNAME ?= your-dockerhub-username
-   IMAGE_NAME ?= echo-bot
-   TAG ?= latest
-
-   build-docker:
-      @echo "Building Docker image: $(IMAGE_NAME):$(TAG)"
-     @docker build --platform linux/amd64 \
-   	--tag $(DOCKER_USERNAME)/$(IMAGE_NAME):$(TAG) \
-   	--build-arg ENV_FILE=.env \
-   	.
-
-   push-docker:
-     @echo "Pushing image to Docker Hub"
-     @docker push $(DOCKER_USERNAME)/$(IMAGE_NAME):$(TAG)
-
-   deploy-docker: build-docker push-docker
-   ```
-
-2. Login to Docker Hub:
+1. Create a new profile using the example template
 
    ```bash
-   docker login
+   echos init --name {agent-name} --twitter-handle {twitter-handle}
    ```
 
-3. Build and push the Docker image:
-   ```bash
-   make deploy-docker DOCKER_USERNAME=your-username TAG=v1.0.0
-   ```
+2. Open the agent profile at `~/.echos/{agent-name}.yaml` from your preferred editor and update the personality to your desired specifications.
 
-### Option 2: Google Cloud Deployment
+## Part 4: Local Deployment
 
-If you prefer using Google Cloud, follow these steps:
+Start the reply guy with:
 
-1. Add this to your Makefile instead:
+```bash
+echos reply-guy
 
-   ```makefile
-   PROJECT ?= your-project-id
-   TAG ?= latest
+# Or if you don't want slack configured:
+echos reply-guy --disable-slack
+```
 
-   build-gcr:
-       @echo "Building image for Google Cloud Registry"
-       @docker buildx build --platform linux/amd64 \
-           --tag gcr.io/$(PROJECT)/agents:echo-$(TAG) \
-           --build-arg ENV_FILE=.env \
-           .
-
-   push-gcr:
-       @echo "Pushing to Google Container Registry"
-       @docker push gcr.io/$(PROJECT)/agents:echo-$(TAG)
-
-   deploy-gcr: build-gcr push-gcr
-   ```
-
-2. Login to Google Cloud:
-
-   ```bash
-   gcloud auth login
-   gcloud auth configure-docker
-   ```
-
-3. Build and deploy:
-
-   ```bash
-   make deploy-gcr PROJECT=your-project-id TAG=v1.0.0
-
-   gcloud run deploy echo-bot \
-     --image gcr.io/your-project-id/agents:echo-v1.0.0 \
-     --platform managed \
-     --region us-central1 \
-     --allow-unauthenticated \
-     --max-instances 1 \
-     --min-instances 1
-   ```
-
-## Have Any Problems?
-
-Possible issues you may encounger and how to solve them:
-
-| Issue              | Solution                                                                                                                          |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| Docker build fails | - Check if Docker daemon is running<br></br>- Verify your `.env` file exists<br></br>- Try building with `--no-cache` flag        |
-| Push fails         | - Check if you're logged in (`docker login` or `gcloud auth login`)<br></br>- Verify your username/project ID                     |
-| Deployment fails   | - Check your cloud provider's quota limits<br></br>- Verify account permissions<br></br>- Check if service name is unique         |
-| Container crashes  | - Check logs with `docker logs` or cloud provider's logging interface<br></br>- Verify all required environment variables are set |
-
-If neither of these solutions work, feel free to reach out.
+Your agent will now poll for mentions or posts from followed accounts. Tag your agent to try it out!
