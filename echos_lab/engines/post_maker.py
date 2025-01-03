@@ -12,7 +12,7 @@ from echos_lab.common.env import get_env_or_raise
 from echos_lab.crypto_lib import crypto_connector
 from echos_lab.db import models
 from echos_lab.engines import agent_context, prompts
-from echos_lab.engines.personalities import legacy
+from echos_lab.engines import legacy
 from echos_lab.engines.personalities.profiles import AgentProfile, LegacyAgentProfile
 from echos_lab.engines.prompts import (
     SubTweetEvaluation,
