@@ -1,6 +1,5 @@
 import io
 import random
-import re
 from typing import Tuple, cast
 
 import requests
@@ -14,13 +13,12 @@ from echos_lab.db.models import TweetType
 from echos_lab.engines import full_agent_tools, post_maker, prompts
 from echos_lab.engines.personalities.profiles import AgentProfile
 from echos_lab.engines.prompts import TweetEvaluation
-from echos_lab.twitter import twitter_pipeline, twitter_auth
+from echos_lab.twitter import twitter_pipeline, twitter_auth, twitter_helpers
 from echos_lab.twitter.types import (
     FollowerTweet,
     HydratedTweet,
     MentionType,
     ReferenceTypes,
-    TweetExclusions,
     TweetMention,
     TWEET_FIELDS,
     RESPONSE_RATING_THRESHOLD_FOLLOWERS,
@@ -147,29 +145,6 @@ async def has_high_follower_count(user_id: int, threshold_num_followers: int = 1
 
     user = cast(User, response.data)
     return user.public_metrics["followers_count"] >= threshold_num_followers
-
-
-async def get_user_ids_from_usernames(db: Session, usernames: list[str]) -> dict[str, int]:
-    """
-    Given a list of usernames, returns a mapping of username -> user ID.
-    First tries DB lookup, then falls back to API query.
-
-    Args:
-        db: Database session
-        usernames: List of Twitter usernames to look up
-
-    Returns:
-        Dictionary of username -> Twitter user ID
-
-    Raises:
-        RuntimeError: If any username cannot be found in DB or via API
-    """
-    user_ids = {}
-    for username in usernames:
-        user_id = await twitter_pipeline.require_user_id_from_username(db, username)
-        user_ids[username] = user_id
-
-    return user_ids
 
 
 async def get_parent_tweet(tweet: Tweet) -> Tweet | None:
@@ -336,46 +311,6 @@ async def get_all_user_mentions(
     return mentions, since_tweet_id
 
 
-async def get_all_follower_tweets(
-    db: Session,
-    agent_name: str,
-    user_id_mapping: dict[str, int],
-    since_time: str,
-) -> list[FollowerTweet]:
-    """
-    Queries latest tweets from followed accounts using DB checkpoints.
-
-    Args:
-        db: Database session
-        user_id_mapping: Mapping of username -> user ID for followers
-        since_time: UTC timestamp of oldest allowable tweet (fallback if no checkpoint)
-
-    Returns:
-        List of tweets to process
-    """
-    tweet_exclusions = [TweetExclusions.REPLIES, TweetExclusions.QUOTE_TWEETS, TweetExclusions.RETWEETS]
-    tweets: list[FollowerTweet] = []
-
-    for username, user_id in user_id_mapping.items():
-        user_tweets = await twitter_pipeline.get_user_latest_tweets(
-            db,
-            agent_name=agent_name,
-            since_time=since_time,
-            user_id=user_id,
-            exclusions=tweet_exclusions,
-        )
-
-        tweets.extend(FollowerTweet(tweet=tweet, username=username) for tweet in user_tweets)
-
-        if user_tweets:
-            logger.info(f"Found {len(user_tweets)} tweets from @{username}...")
-
-    if not tweets:
-        logger.info("Found 0 tweets from followed accounts...\n")
-
-    return tweets
-
-
 # TODO: Use DB in combination with API
 async def get_author_recent_tweets(author_id: int) -> list[Tweet]:
     """
@@ -483,24 +418,6 @@ async def post_tweet(
     logger.info(f"{tweet_type.capitalize()} tweet{' with image ' if media_ids else ' '}successful\n")
 
     return response_tweet_id
-
-
-# TODO: Move to twitter_helpers
-def remove_tweet_reply_tags(tweet_contents: str) -> str:
-    """
-    Given the full tweet contents (including reply tags) in the format:
-        e.g. "@userA @userB @userC some tweet message"
-
-    Returns just the part after the tags:
-        e.g. "some tweet message"
-
-    Note: we don't know for sure if the last tag was a part of the actual message or not,
-    so this function should be taken with a grain of salt!
-    If there is no message after the last tag, the last tag is assumed to be the message
-    (this is because you can't have empty tweets)
-    """
-    twitter_handle_regex = r"^(@\w+\s+)*"  # @ + {word-char} + {white-space}
-    return re.sub(twitter_handle_regex, "", tweet_contents).strip()
 
 
 async def reply_to_tweet_with_image(
@@ -618,7 +535,7 @@ async def should_reply_to_mention(bot_handle: str, mention: TweetMention) -> boo
     # Extract all the tags at the start of the message
     tagged_tweet_contents = mention.tagged_tweet.text
     original_tweet_contents = cast(HydratedTweet, mention.original_tweet).text
-    message = remove_tweet_reply_tags(mention.tagged_tweet.text)
+    message = twitter_helpers.remove_tweet_reply_tags(mention.tagged_tweet.text)
 
     # If the bot is not tagged at all, we should obviously not respond
     # (although this case should not be possible since we only grab messages with a tag)

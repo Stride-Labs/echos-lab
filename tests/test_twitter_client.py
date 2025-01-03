@@ -1398,16 +1398,6 @@ class TestReplyToFollowers:
 class TestShouldReplyToMentions:
     bot_handle = "bot"
 
-    async def test_remove_tweet_reply_tags(self):
-        """
-        Tests removing the prefix of user tags from the tweet contents
-        """
-        assert twitter_client.remove_tweet_reply_tags("some message") == "some message"
-        assert twitter_client.remove_tweet_reply_tags("@userA some message") == "some message"
-        assert twitter_client.remove_tweet_reply_tags("@userA @userB @userC some message") == "some message"
-        assert twitter_client.remove_tweet_reply_tags("@userA @userB @userC") == "@userC"
-        assert twitter_client.remove_tweet_reply_tags("@userA") == "@userA"
-
     async def test_tag_in_original(self):
         """
         Tag in original tweet, should respond. Ex:
