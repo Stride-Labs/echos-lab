@@ -13,7 +13,7 @@ from echos_lab.engines import full_agent, images, post_maker
 from echos_lab.engines.personalities import profiles
 from echos_lab.engines.personalities.profiles import AgentProfile, LegacyAgentProfile
 from echos_lab.slack.client import SlackClient
-from echos_lab.telegram import telegram_connector
+from echos_lab.telegram import telegram_client
 from echos_lab.twitter import (
     twitter_client,
     twitter_connector,
@@ -82,7 +82,7 @@ async def run_telegram_flow():
     """
     await setup_legacy_app()
 
-    app = await telegram_connector.start_telegram_listener()
+    app = await telegram_client.start_telegram_listener()
     try:
         await asyncio.Event().wait()
     except (KeyboardInterrupt, asyncio.CancelledError):
@@ -220,7 +220,7 @@ async def start_bot(login: bool):
     scheduler.start()
 
     # Start listening to telegram messages
-    app = await telegram_connector.start_telegram_listener()
+    app = await telegram_client.start_telegram_listener()
 
     # Keep process running indefinitely, and gracefully shut down
     # the telegram app and scheduler when the thread is killed
