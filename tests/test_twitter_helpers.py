@@ -4,6 +4,18 @@ from echos_lab.twitter import twitter_helpers
 from echos_lab.twitter.types import TweetExclusions
 
 
+class TestRemoveTweetReplyTags:
+    def test_remove_tweet_reply_tags(self):
+        """
+        Tests removing the prefix of user tags from the tweet contents
+        """
+        assert twitter_helpers.remove_tweet_reply_tags("some message") == "some message"
+        assert twitter_helpers.remove_tweet_reply_tags("@userA some message") == "some message"
+        assert twitter_helpers.remove_tweet_reply_tags("@userA @userB @userC some message") == "some message"
+        assert twitter_helpers.remove_tweet_reply_tags("@userA @userB @userC") == "@userC"
+        assert twitter_helpers.remove_tweet_reply_tags("@userA") == "@userA"
+
+
 class TestFilterTweetExclusions:
     def test_filter_tweet_exclusions_no_exclusions(self):
         """

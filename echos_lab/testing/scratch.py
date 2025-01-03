@@ -2,7 +2,7 @@ from typing import cast
 
 from tweepy import Response
 
-from echos_lab.twitter import twitter_client
+from echos_lab.twitter import twitter_auth
 
 
 async def post_tweet(client, tweet="Hello world."):
@@ -15,12 +15,12 @@ async def post_tweet(client, tweet="Hello world."):
 
 
 async def test_tweet():
-    client = twitter_client.get_tweepy_async_client()
+    client = twitter_auth.get_tweepy_async_client()
     await post_tweet(client)
 
 
 async def test_get_follower_count(user_id) -> int:
-    client = twitter_client.get_tweepy_async_client()
+    client = twitter_auth.get_tweepy_async_client()
     response = await client.get_user(id=user_id, user_fields="public_metrics")
     response = cast(Response, response)
     if not response or not response.data:

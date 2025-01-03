@@ -6,20 +6,14 @@ from langchain_core.tools import tool
 
 from echos_lab.crypto_lib import create_token, crypto_connector
 from echos_lab.db import db_setup
-from echos_lab.engines import (
-    context_store,
-    memes,
-    post_maker,
-    post_retriever,
-)
-from echos_lab.engines.personalities import profiles
+from echos_lab.engines import context_store, memes, post_maker, post_retriever, profiles
 from echos_lab.engines.prompts import TweetEvaluation
-from echos_lab.telegram import telegram_connector
+from echos_lab.telegram import telegram_client
 from echos_lab.twitter import (
-    twitter_client,
-    twitter_connector,
+    twitter_browser,
     twitter_helpers,
     twitter_pipeline,
+    twitter_poster,
 )
 
 
@@ -74,16 +68,16 @@ async def send_tweet(tweet_content: str) -> bool:
     # post tweet
     agent_profile = profiles.get_legacy_agent_profile()
     twitter_handle = agent_profile.twitter_handle
-    tweet_id = await twitter_client.post_tweet(agent_username=twitter_handle, text=tweet_content)
+    tweet_id = await twitter_poster.post_tweet(agent_username=twitter_handle, text=tweet_content)
 
     # Construct telegram tweet message
-    telegram_message = telegram_connector.get_posted_tweet_message(
+    telegram_message = telegram_client.get_posted_tweet_message(
         agent_username=agent_profile.twitter_handle,
         tweet_id=tweet_id,
         tweet_text=tweet_content,
     )
 
-    return await telegram_connector.send_message(
+    return await telegram_client.send_message(
         telegram_message,
         chat_id=context_store.get_env_var("telegram_chat_id"),
     )
@@ -119,7 +113,7 @@ async def send_tweet_reply(tweet_content: str, tweet_id: str, user_name: str) ->
     # post tweet
     agent_profile = profiles.get_legacy_agent_profile()
     agent_username = agent_profile.twitter_handle
-    posted_tweet_id = await twitter_client.post_tweet(
+    posted_tweet_id = await twitter_poster.post_tweet(
         agent_username=agent_username,
         text=tweet_content,
         in_reply_to_tweet_id=int(tweet_id),
@@ -127,17 +121,15 @@ async def send_tweet_reply(tweet_content: str, tweet_id: str, user_name: str) ->
     )
 
     # Construct telegram tweet message
-    agent_tweet_message = telegram_connector.get_posted_tweet_message(
+    agent_tweet_message = telegram_client.get_posted_tweet_message(
         agent_username=agent_profile.twitter_handle,
         tweet_id=posted_tweet_id,
         tweet_text=tweet_content,
     )
     original_tweet_url = twitter_helpers.get_tweet_url(username=user_name, tweet_id=int(tweet_id))
-    telegram_message = telegram_connector.get_reply_tweet_message(agent_tweet_message, original_tweet_url)
+    telegram_message = telegram_client.get_reply_tweet_message(agent_tweet_message, original_tweet_url)
 
-    return await telegram_connector.send_message(
-        telegram_message, chat_id=context_store.get_env_var("telegram_chat_id")
-    )
+    return await telegram_client.send_message(telegram_message, chat_id=context_store.get_env_var("telegram_chat_id"))
 
 
 @tool
@@ -162,27 +154,25 @@ async def send_quote_tweet(tweet_content: str, tweet_id: str, user_name: str) ->
     # post tweet
     agent_profile = profiles.get_legacy_agent_profile()
     agent_username = agent_profile.twitter_handle
-    posted_tweet_id = await twitter_client.post_tweet(
+    posted_tweet_id = await twitter_poster.post_tweet(
         agent_username=agent_username, text=tweet_content, quote_tweet_id=int(tweet_id)
     )
 
     # Construct telegram tweet message
-    agent_tweet_message = telegram_connector.get_posted_tweet_message(
+    agent_tweet_message = telegram_client.get_posted_tweet_message(
         agent_username=agent_profile.twitter_handle,
         tweet_id=posted_tweet_id,
         tweet_text=tweet_content,
     )
     original_tweet_url = twitter_helpers.get_tweet_url(username=user_name, tweet_id=int(tweet_id))
-    telegram_message = telegram_connector.get_quote_tweet_message(agent_tweet_message, original_tweet_url)
+    telegram_message = telegram_client.get_quote_tweet_message(agent_tweet_message, original_tweet_url)
 
-    return await telegram_connector.send_message(
-        telegram_message, chat_id=context_store.get_env_var("telegram_chat_id")
-    )
+    return await telegram_client.send_message(telegram_message, chat_id=context_store.get_env_var("telegram_chat_id"))
 
 
 async def get_twitter_feed_raw(new_posts_only: bool, include_id=True, notifications_only=False) -> str:
-    account = twitter_connector.get_twitter_account()
-    scraper = twitter_connector.get_twitter_scraper()
+    account = twitter_browser.get_twitter_account()
+    scraper = twitter_browser.get_twitter_scraper()
 
     # get recent tweets
     notif_context_tuple = await post_retriever.fetch_notification_context(
@@ -197,7 +187,7 @@ async def get_twitter_feed_raw(new_posts_only: bool, include_id=True, notificati
         )
 
     # get what tweets we've already talked about in TG
-    seen_ids = telegram_connector.get_interacted_tweets()
+    seen_ids = telegram_client.get_interacted_tweets()
 
     # format the tweets
     relevant_tweets = notif_context_tuple
@@ -264,7 +254,7 @@ async def get_twitter_post(post_id: str) -> str:
     Returns:
     - str: A detailed text description of the post and surrounding conversation
     """
-    scraper = twitter_connector.get_twitter_scraper()
+    scraper = twitter_browser.get_twitter_scraper()
     for _ in range(3):
         try:
             formatted_text = await post_retriever.format_conversation_for_llm(
@@ -293,7 +283,7 @@ async def read_twitter_user_posts(username: str) -> str:
     Returns:
     - str: A text block containing the most recent tweets for the specified username
     """
-    twitter_posts = await twitter_connector.get_tweets_from_username(username)
+    twitter_posts = await twitter_browser.get_tweets_from_username(username)
     return twitter_posts
 
 
@@ -310,7 +300,7 @@ def like_twitter_post(post_id: str) -> bool:
     Returns:
     - bool: True if the post was successfully liked, False otherwise
     """
-    account = twitter_connector.get_twitter_account()
+    account = twitter_browser.get_twitter_account()
     out = account.like(int(post_id))
     try:
         if out['data']['favorite_tweet'] == 'Done':
@@ -333,8 +323,8 @@ async def follow_twitter_user(username: str) -> bool:
     Returns:
     - bool: True if the user was successfully followed, False otherwise
     """
-    account = twitter_connector.get_twitter_account()
-    target = await twitter_connector.get_user_id_from_username(username=username)
+    account = twitter_browser.get_twitter_account()
+    target = await twitter_browser.get_user_id_from_username(username=username)
     if target:
         out = account.follow(target)
         print(out)
@@ -348,7 +338,7 @@ def get_telegram_messages_raw(chat_id: int, specific_user: str | None = None) ->
 
     Optionally filter to just messages for a given user
     """
-    messages = telegram_connector.get_telegram_messages(target_chat_id=chat_id)[::-1]
+    messages = telegram_client.get_telegram_messages(target_chat_id=chat_id)[::-1]
 
     # Optionally filter for just messages from the specific user
     if specific_user:
@@ -398,7 +388,7 @@ def get_interacted_tweets() -> List[str]:
     Returns:
     - List[str]: A list of strings, representing tweet IDs that you have already interacted with.
     """
-    return telegram_connector.get_interacted_tweets()
+    return telegram_client.get_interacted_tweets()
 
 
 @tool
@@ -412,7 +402,7 @@ async def send_telegram_message(message_content: str) -> bool:
     Returns:
     - bool: True if the message was successfully sent, False otherwise
     """
-    return await telegram_connector.send_message(message_content, chat_id=context_store.get_env_var("telegram_chat_id"))
+    return await telegram_client.send_message(message_content, chat_id=context_store.get_env_var("telegram_chat_id"))
 
 
 @tool

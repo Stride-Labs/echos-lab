@@ -1,7 +1,55 @@
 from requests_oauthlib import OAuth1Session
+from tweepy import API, OAuth1UserHandler
+from tweepy.asynchronous import AsyncClient
 
 from echos_lab.common.env import EnvironmentVariables as envs
 from echos_lab.common.env import get_env_or_raise
+
+# Module level singleton to store tweepy client
+_tweepy_async_client: AsyncClient | None = None
+_tweepy_oauth1_client: API | None = None
+
+
+def get_tweepy_async_client():
+    """
+    Singleton to get or create the tweepy client
+    """
+    consumer_key = get_env_or_raise(envs.TWITTER_CONSUMER_KEY)
+    consumer_secret = get_env_or_raise(envs.TWITTER_CONSUMER_SECRET)
+    access_token = get_env_or_raise(envs.TWITTER_ACCESS_TOKEN)
+    access_token_secret = get_env_or_raise(envs.TWITTER_ACCESS_TOKEN_SECRET)
+    bearer_token = get_env_or_raise(envs.TWITTER_BEARER_TOKEN)
+
+    global _tweepy_async_client
+
+    if not _tweepy_async_client:
+        _tweepy_async_client = AsyncClient(
+            consumer_key=consumer_key,
+            consumer_secret=consumer_secret,
+            access_token=access_token,
+            access_token_secret=access_token_secret,
+            bearer_token=bearer_token,
+            wait_on_rate_limit=True,
+        )
+    return _tweepy_async_client
+
+
+def get_tweepy_oauth1_client():
+    """
+    Creates a new Tweepy API instance
+    """
+    consumer_key = get_env_or_raise(envs.TWITTER_CONSUMER_KEY)
+    consumer_secret = get_env_or_raise(envs.TWITTER_CONSUMER_SECRET)
+    access_token = get_env_or_raise(envs.TWITTER_ACCESS_TOKEN)
+    access_token_secret = get_env_or_raise(envs.TWITTER_ACCESS_TOKEN_SECRET)
+
+    global _tweepy_oauth1_client
+
+    if not _tweepy_oauth1_client:
+        auth = OAuth1UserHandler(consumer_key, consumer_secret, access_token, access_token_secret)
+        _tweepy_oauth1_client = API(auth)
+
+    return _tweepy_oauth1_client
 
 
 def get_twitter_access_tokens():

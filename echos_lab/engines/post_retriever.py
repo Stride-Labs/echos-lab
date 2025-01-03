@@ -5,7 +5,7 @@ from twitter.account import Account
 from twitter.scraper import Scraper
 
 from echos_lab.db.models import Tweet
-from echos_lab.twitter import twitter_connector
+from echos_lab.twitter import twitter_browser
 
 NUM_POSTS = 40
 
@@ -168,7 +168,7 @@ async def get_root_tweet_id(tweets: dict, start_id: str, scraper: Scraper) -> st
         # If it's not already in the tweets dict, scape the tweet from the ID
         tweet = tweets.get(current_id)
         if not tweet:
-            tweet = await twitter_connector.get_tweet_from_tweet_id(current_id, scraper)
+            tweet = await twitter_browser.get_tweet_from_tweet_id(current_id, scraper)
             if not tweet:
                 return None
 
@@ -206,7 +206,7 @@ async def format_conversation_for_llm(data, tweet_id, scraper: Scraper, individu
 
         print(f"Getting chain for {current_id}")
         processed_ids.add(current_id)
-        current_tweet = await twitter_connector.get_tweet_from_tweet_id(str(current_id), scraper=scraper)
+        current_tweet = await twitter_browser.get_tweet_from_tweet_id(str(current_id), scraper=scraper)
         if not current_tweet:
             return []
 
@@ -298,7 +298,7 @@ async def find_all_conversations(data, scraper: Scraper) -> List[Tuple[str, str]
 
 async def get_tweets_by_user(username: str, scraper: Scraper) -> List[tuple[str, str]]:
     """Get the most recent tweets for a particular username."""
-    user_id = await twitter_connector.get_user_id_from_username(username)
+    user_id = await twitter_browser.get_user_id_from_username(username)
     user_tweets = scraper.tweets([user_id])  # type: ignore
     if 'errors' in user_tweets[0]:
         print(user_tweets[0])

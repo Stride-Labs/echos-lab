@@ -1,13 +1,14 @@
+from collections import OrderedDict
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from conftest import build_tweet, build_tweet_mention
+from conftest import build_db_tweet, build_tweet, build_tweet_mention
 from sqlalchemy.orm import Session
 
 from echos_lab.db import db_connector, models
 from echos_lab.db.models import QueryType
 from echos_lab.twitter import twitter_pipeline
-from echos_lab.twitter.types import TweetExclusions
+from echos_lab.twitter.types import FollowerTweet, TweetExclusions
 
 
 @pytest.mark.asyncio
@@ -60,6 +61,50 @@ class TestGetUsernameFromId:
 
         db_connector.add_twitter_user(db, user_id=user_id, username=username)
         assert await twitter_pipeline.get_username_from_user_id(db, user_id) == username
+
+
+@pytest.mark.asyncio
+class TestGetUserIdsFromUsernames:
+    @patch("echos_lab.twitter.twitter_client.get_user_id_from_username")
+    async def test_get_user_ids_from_usernames_success(self, mock_get_user_id: AsyncMock, db: Session):
+        """
+        Tests successfully gathering user IDs from usernames
+        """
+        user_id_A = 1
+        user_id_B = 2
+
+        username_A = "userA"
+        username_B = "userB"
+
+        usernames = [username_A, username_B]
+        expected_user_id_mapping = {username_A: user_id_A, username_B: user_id_B}
+
+        # Add userA to the database and mock the API response for userB
+        # so that it's returned when it falls back to the API
+        db_connector.add_twitter_user(db, user_id=user_id_A, username=username_A)
+        mock_get_user_id.return_value = user_id_B
+
+        # Get user IDs
+        actual_user_id_mapping = await twitter_pipeline.get_user_ids_from_usernames(db, usernames)
+        assert actual_user_id_mapping == expected_user_id_mapping
+
+        # Confirm the API was only called once
+        mock_get_user_id.assert_called_once()
+
+    @patch("echos_lab.twitter.twitter_client.get_user_id_from_username")
+    async def test_get_user_ids_from_usernames_not_found(self, mock_get_user_id: AsyncMock, db: Session):
+        """
+        Tests handling of missing user ID
+        """
+        usernames = ["userA"]
+
+        # We'll intentionally not add the twitter user to the database
+        # so it falls back to the API
+        # And then we'll also mock that API response to return None
+        mock_get_user_id.return_value = None
+
+        with pytest.raises(RuntimeError, match=r"Twitter User ID not found for handle @userA"):
+            await twitter_pipeline.get_user_ids_from_usernames(db, usernames)
 
 
 @pytest.mark.asyncio
@@ -532,3 +577,49 @@ class TestUserMentions:
         # Confirm the checkpoint was updated
         checkpoint = twitter_pipeline.get_checkpoint(db, agent, user_id, query_type=QueryType.USER_MENTIONS)
         assert checkpoint and checkpoint.last_tweet_id == new_tweet_ids[-1]
+
+
+@pytest.mark.asyncio
+class TestGetAllFollowerTweets:
+    @patch("echos_lab.twitter.twitter_pipeline.get_user_latest_tweets")
+    async def test_get_all_follower_tweets_success(self, mock_get_user_tweets: AsyncMock, db: Session):
+        """
+        Tests retrieving tweets from multiple followers
+        """
+        since_time = "1"
+        agent_name = "agent"
+
+        # Setup ordered user mapping
+        # It must be an ordered dict in order to line up with the mocked side effects
+        userA, userB = "userA", "userB"
+        user_id_mapping = OrderedDict([(userA, 1), (userB, 2)])
+
+        # Build test tweets
+        latest_tweet_A = 200
+        latest_tweet_B = 400
+        userA_tweets = [
+            build_db_tweet(100, "tweet1", conversation_id=100),
+            build_db_tweet(latest_tweet_A, "tweet2", conversation_id=latest_tweet_A),
+        ]
+        userB_tweets = [
+            build_db_tweet(300, "tweet3", conversation_id=300),
+            build_db_tweet(latest_tweet_B, "tweet4", conversation_id=latest_tweet_B),
+        ]
+        expected_tweets = [
+            FollowerTweet(tweet=userA_tweets[0], username=userA),
+            FollowerTweet(tweet=userA_tweets[1], username=userA),
+            FollowerTweet(tweet=userB_tweets[0], username=userB),
+            FollowerTweet(tweet=userB_tweets[1], username=userB),
+        ]
+
+        # Mock DB responses
+        mock_get_user_tweets.side_effect = [userA_tweets, userB_tweets]
+
+        # Get all follower tweets
+        actual_tweets = await twitter_pipeline.get_all_follower_tweets(
+            db=db,
+            agent_name=agent_name,
+            user_id_mapping=user_id_mapping,  # type: ignore
+            since_time=since_time,
+        )
+        assert actual_tweets == expected_tweets

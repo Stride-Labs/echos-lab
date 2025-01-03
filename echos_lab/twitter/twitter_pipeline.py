@@ -2,10 +2,11 @@ from typing import List
 
 from sqlalchemy.orm import Session
 
+from echos_lab.common.logger import logger
 from echos_lab.db import db_connector, models
 from echos_lab.db.models import QueryType, TwitterQueryCheckpoint, TwitterUser
 from echos_lab.twitter import twitter_client, twitter_helpers
-from echos_lab.twitter.types import TweetExclusions, TweetMention
+from echos_lab.twitter.types import FollowerTweet, TweetExclusions, TweetMention
 
 
 def get_checkpoint(
@@ -142,6 +143,29 @@ async def get_username_from_user_id(db: Session, user_id: int) -> str | None:
         return username
 
     return None
+
+
+async def get_user_ids_from_usernames(db: Session, usernames: list[str]) -> dict[str, int]:
+    """
+    Given a list of usernames, returns a mapping of username -> user ID.
+    First tries DB lookup, then falls back to API query.
+
+    Args:
+        db: Database session
+        usernames: List of Twitter usernames to look up
+
+    Returns:
+        Dictionary of username -> Twitter user ID
+
+    Raises:
+        RuntimeError: If any username cannot be found in DB or via API
+    """
+    user_ids = {}
+    for username in usernames:
+        user_id = await require_user_id_from_username(db, username)
+        user_ids[username] = user_id
+
+    return user_ids
 
 
 async def require_user_id_from_username(db: Session, username: str) -> int:
@@ -411,3 +435,43 @@ async def get_user_mentions(db: Session, agent_name: str, agent_id: int, since_t
     # Return the mentions
     # TODO: Return the DB tweet types instead
     return mentions
+
+
+async def get_all_follower_tweets(
+    db: Session,
+    agent_name: str,
+    user_id_mapping: dict[str, int],
+    since_time: str,
+) -> list[FollowerTweet]:
+    """
+    Queries latest tweets from followed accounts using DB checkpoints.
+
+    Args:
+        db: Database session
+        user_id_mapping: Mapping of username -> user ID for followers
+        since_time: UTC timestamp of oldest allowable tweet (fallback if no checkpoint)
+
+    Returns:
+        List of tweets to process
+    """
+    tweet_exclusions = [TweetExclusions.REPLIES, TweetExclusions.QUOTE_TWEETS, TweetExclusions.RETWEETS]
+    tweets: list[FollowerTweet] = []
+
+    for username, user_id in user_id_mapping.items():
+        user_tweets = await get_user_latest_tweets(
+            db,
+            agent_name=agent_name,
+            since_time=since_time,
+            user_id=user_id,
+            exclusions=tweet_exclusions,
+        )
+
+        tweets.extend(FollowerTweet(tweet=tweet, username=username) for tweet in user_tweets)
+
+        if user_tweets:
+            logger.info(f"Found {len(user_tweets)} tweets from @{username}...")
+
+    if not tweets:
+        logger.info("Found 0 tweets from followed accounts...\n")
+
+    return tweets

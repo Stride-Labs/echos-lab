@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from echos_lab.common.env import EnvironmentVariables as envs
 from echos_lab.common.env import get_env_or_raise
 from echos_lab.db.models import QueryType, TwitterQueryCheckpoint, TwitterUser
-from echos_lab.engines.personalities.profiles import AgentProfile
+from echos_lab.engines.profiles import AgentProfile
 from echos_lab.twitter import twitter_client
 
 # Setup logging

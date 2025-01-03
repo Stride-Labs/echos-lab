@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import time
 
 from tweepy import Tweet
@@ -19,6 +20,23 @@ def get_tweet_url(username: str, tweet_id: int) -> str:
     Builds the twitter URL from a username and tweet ID
     """
     return f"https://twitter.com/{username}/status/{tweet_id}"
+
+
+def remove_tweet_reply_tags(tweet_contents: str) -> str:
+    """
+    Given the full tweet contents (including reply tags) in the format:
+        e.g. "@userA @userB @userC some tweet message"
+
+    Returns just the part after the tags:
+        e.g. "some tweet message"
+
+    Note: we don't know for sure if the last tag was a part of the actual message or not,
+    so this function should be taken with a grain of salt!
+    If there is no message after the last tag, the last tag is assumed to be the message
+    (this is because you can't have empty tweets)
+    """
+    twitter_handle_regex = r"^(@\w+\s+)*"  # @ + {word-char} + {white-space}
+    return re.sub(twitter_handle_regex, "", tweet_contents).strip()
 
 
 def delete_cookies():

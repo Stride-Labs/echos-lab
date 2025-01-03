@@ -6,7 +6,7 @@ from echos_lab.crypto_lib import abis
 from echos_lab.crypto_lib import crypto_helpers as ch
 from echos_lab.crypto_lib import query_balances
 from echos_lab.engines import images
-from echos_lab.engines.personalities.profiles import LegacyAgentProfile
+from echos_lab.engines.profiles import LegacyAgentProfile
 
 
 def try_creating_image(symbol: str, name: str, description: str, image_attributes, num_tries=3) -> str:

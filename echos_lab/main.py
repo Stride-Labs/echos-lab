@@ -9,15 +9,14 @@ from echos_lab.common.env import get_env_or_raise
 from echos_lab.common.logger import logger
 from echos_lab.crypto_lib import crypto_connector
 from echos_lab.db import db_connector, db_setup
-from echos_lab.engines import full_agent, images, post_maker
-from echos_lab.engines.personalities import profiles
-from echos_lab.engines.personalities.profiles import AgentProfile, LegacyAgentProfile
+from echos_lab.engines import full_agent, images, post_maker, profiles
+from echos_lab.engines.profiles import AgentProfile, LegacyAgentProfile
 from echos_lab.slack.client import SlackClient
-from echos_lab.telegram import telegram_connector
+from echos_lab.telegram import telegram_client
 from echos_lab.twitter import (
-    twitter_client,
-    twitter_connector,
+    twitter_browser,
     twitter_pipeline,
+    twitter_poster,
     twitter_workflows,
 )
 
@@ -69,7 +68,7 @@ async def run_twitter_flow(login: bool):
     agent_profile = await setup_legacy_app()
 
     if login:
-        twitter_connector.login_to_twitter()
+        twitter_browser.login_to_twitter()
 
     individual_telegram_chat_id = int(get_env_or_raise(envs.TELEGRAM_INDIVIDUAL_CHAT_ID))
     await full_agent.twitter_flow(agent_profile.twitter_handle, individual_telegram_chat_id)
@@ -82,7 +81,7 @@ async def run_telegram_flow():
     """
     await setup_legacy_app()
 
-    app = await telegram_connector.start_telegram_listener()
+    app = await telegram_client.start_telegram_listener()
     try:
         await asyncio.Event().wait()
     except (KeyboardInterrupt, asyncio.CancelledError):
@@ -110,7 +109,7 @@ async def subtweet(tweet_topic: str, dry_run: bool = False) -> tuple[str, int | 
         return response_data.subtweet, None
 
     # Post the subtweet
-    response_tweet_id = await twitter_client.post_tweet(agent_username=agent_username, text=response_data.subtweet)
+    response_tweet_id = await twitter_poster.post_tweet(agent_username=agent_username, text=response_data.subtweet)
 
     return response_data.subtweet, response_tweet_id
 
@@ -200,7 +199,7 @@ async def start_bot(login: bool):
     """
     # Login to twitter if specified
     if login:
-        twitter_connector.login_to_twitter()
+        twitter_browser.login_to_twitter()
 
     # Initialize database and accounts
     agent_profile = await setup_legacy_app()
@@ -220,7 +219,7 @@ async def start_bot(login: bool):
     scheduler.start()
 
     # Start listening to telegram messages
-    app = await telegram_connector.start_telegram_listener()
+    app = await telegram_client.start_telegram_listener()
 
     # Keep process running indefinitely, and gracefully shut down
     # the telegram app and scheduler when the thread is killed

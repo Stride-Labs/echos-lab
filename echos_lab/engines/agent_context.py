@@ -9,7 +9,7 @@ from gspread.http_client import BackOffHTTPClient  # type: ignore
 from echos_lab.common import utils
 from echos_lab.common.env import EnvironmentVariables as envs
 from echos_lab.common.env import get_env, get_env_or_raise
-from echos_lab.engines.personalities.profiles import AgentProfile
+from echos_lab.engines.profiles import AgentProfile
 
 GSHEET_SCOPE: tuple[str] = ("https://www.googleapis.com/auth/spreadsheets",)
 
