@@ -17,4 +17,5 @@ jobs:
 
       - name: Run tests
         run: |
+          AGENT_NAME=bot
           make test
