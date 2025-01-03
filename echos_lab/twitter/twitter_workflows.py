@@ -5,7 +5,7 @@ from echos_lab.common.logger import logger
 from echos_lab.common.utils import with_db
 from echos_lab.engines.personalities.profiles import AgentProfile
 from echos_lab.engines import post_maker, prompts
-from echos_lab.twitter import twitter_client, twitter_pipeline
+from echos_lab.twitter import twitter_client, twitter_pipeline, twitter_poster
 from echos_lab.twitter.types import HydratedTweet, RESPONSE_RATING_THRESHOLD_MENTIONS, MEME_RATING_THRESHOLD
 
 
@@ -35,7 +35,7 @@ async def run_reply_guy_mentions_cycle(db: Session, agent_profile: AgentProfile,
     logger.info(f"Found {len(mentions)} mention{'' if len(mentions) == 1 else 's'}...")
 
     # Generate and post responses to each mention
-    await twitter_client.reply_to_mentions(db=db, agent_profile=agent_profile, mentions=mentions)
+    await twitter_poster.reply_to_mentions(db=db, agent_profile=agent_profile, mentions=mentions)
 
 
 @with_db
@@ -71,7 +71,7 @@ async def run_reply_guy_followers_cycle(db: Session, agent_profile: AgentProfile
     )
 
     # Generate and post responses to each tweet
-    await twitter_client.reply_to_followers(db=db, agent_profile=agent_profile, tweets=tweets)
+    await twitter_poster.reply_to_followers(db=db, agent_profile=agent_profile, tweets=tweets)
 
 
 @with_db
@@ -113,7 +113,7 @@ async def reply_to_tweet(db: Session, agent_profile: AgentProfile, tweet_id: int
         return None
 
     # Post the response
-    return await twitter_client.post_tweet_response(
+    return await twitter_poster.post_tweet_response(
         agent_profile=agent_profile,
         evaluation=response_evaluation,
         meme_threshold=MEME_RATING_THRESHOLD,

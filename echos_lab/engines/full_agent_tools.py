@@ -15,12 +15,7 @@ from echos_lab.engines import (
 from echos_lab.engines.personalities import profiles
 from echos_lab.engines.prompts import TweetEvaluation
 from echos_lab.telegram import telegram_client
-from echos_lab.twitter import (
-    twitter_client,
-    twitter_browser,
-    twitter_helpers,
-    twitter_pipeline,
-)
+from echos_lab.twitter import twitter_client, twitter_browser, twitter_helpers, twitter_pipeline, twitter_poster
 
 
 @tool
@@ -74,7 +69,7 @@ async def send_tweet(tweet_content: str) -> bool:
     # post tweet
     agent_profile = profiles.get_legacy_agent_profile()
     twitter_handle = agent_profile.twitter_handle
-    tweet_id = await twitter_client.post_tweet(agent_username=twitter_handle, text=tweet_content)
+    tweet_id = await twitter_poster.post_tweet(agent_username=twitter_handle, text=tweet_content)
 
     # Construct telegram tweet message
     telegram_message = telegram_client.get_posted_tweet_message(
@@ -119,7 +114,7 @@ async def send_tweet_reply(tweet_content: str, tweet_id: str, user_name: str) ->
     # post tweet
     agent_profile = profiles.get_legacy_agent_profile()
     agent_username = agent_profile.twitter_handle
-    posted_tweet_id = await twitter_client.post_tweet(
+    posted_tweet_id = await twitter_poster.post_tweet(
         agent_username=agent_username,
         text=tweet_content,
         in_reply_to_tweet_id=int(tweet_id),
@@ -160,7 +155,7 @@ async def send_quote_tweet(tweet_content: str, tweet_id: str, user_name: str) ->
     # post tweet
     agent_profile = profiles.get_legacy_agent_profile()
     agent_username = agent_profile.twitter_handle
-    posted_tweet_id = await twitter_client.post_tweet(
+    posted_tweet_id = await twitter_poster.post_tweet(
         agent_username=agent_username, text=tweet_content, quote_tweet_id=int(tweet_id)
     )
 

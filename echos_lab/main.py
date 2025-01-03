@@ -14,12 +14,7 @@ from echos_lab.engines.personalities import profiles
 from echos_lab.engines.personalities.profiles import AgentProfile, LegacyAgentProfile
 from echos_lab.slack.client import SlackClient
 from echos_lab.telegram import telegram_client
-from echos_lab.twitter import (
-    twitter_client,
-    twitter_browser,
-    twitter_pipeline,
-    twitter_workflows,
-)
+from echos_lab.twitter import twitter_browser, twitter_pipeline, twitter_workflows, twitter_poster
 
 TWITTER_FLOW_LOOP_FREQUENCY = 120  # minutes
 REPLY_GUY_LOOP_FREQUENCY = 1  # minutes
@@ -110,7 +105,7 @@ async def subtweet(tweet_topic: str, dry_run: bool = False) -> tuple[str, int | 
         return response_data.subtweet, None
 
     # Post the subtweet
-    response_tweet_id = await twitter_client.post_tweet(agent_username=agent_username, text=response_data.subtweet)
+    response_tweet_id = await twitter_poster.post_tweet(agent_username=agent_username, text=response_data.subtweet)
 
     return response_data.subtweet, response_tweet_id
 
