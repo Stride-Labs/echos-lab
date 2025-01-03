@@ -1,9 +1,12 @@
 from sqlalchemy.orm import Session
+from typing import cast
 
 from echos_lab.common.logger import logger
 from echos_lab.common.utils import with_db
 from echos_lab.engines.personalities.profiles import AgentProfile
+from echos_lab.engines import post_maker, prompts
 from echos_lab.twitter import twitter_client, twitter_pipeline
+from echos_lab.twitter.types import HydratedTweet, RESPONSE_RATING_THRESHOLD_MENTIONS, MEME_RATING_THRESHOLD
 
 
 @with_db
@@ -69,3 +72,53 @@ async def run_reply_guy_followers_cycle(db: Session, agent_profile: AgentProfile
 
     # Generate and post responses to each tweet
     await twitter_client.reply_to_followers(db=db, agent_profile=agent_profile, tweets=tweets)
+
+
+@with_db
+async def reply_to_tweet(db: Session, agent_profile: AgentProfile, tweet_id: int) -> int | None:
+    """
+    Generates and posts a reply guy response to a specific tweet
+    Returns the tweet ID of the response
+    """
+    # Fetch the tweet
+    # TODO: use pipeline get_tweet_from_tweet_id
+    tweet = await twitter_client.get_tweet_from_tweet_id(tweet_id)
+    if not tweet:
+        return None
+
+    # Enrich the tweet with all the parents in the thread
+    # It's not techically a mention, but the struct has the needed functionality
+    mention = await twitter_client.enrich_user_mention(tweet)
+
+    # If this was a thread, grab the author of the top parent,
+    # otherwise grab the author last tweet in the reply
+    original_tweet = mention.tagged_tweet if not mention.original_tweet else cast(HydratedTweet, mention.original_tweet)
+    author = await original_tweet.get_username()
+
+    # Get the recent tweets from this author
+    author_recent_tweets = await twitter_client.get_author_recent_tweets(original_tweet.author_id)
+
+    # Generate a response
+    conversation_summary = await prompts.build_twitter_mentions_prompt(mention)
+    response_evaluation = await post_maker.generate_reply_guy_tweet(
+        agent_profile=agent_profile,
+        author=author,
+        tweet_summary=conversation_summary,
+        author_recent_tweets=author_recent_tweets,
+        agent_recent_tweets=[],
+        allow_roasting=True,
+    )
+
+    if response_evaluation is None:
+        return None
+
+    # Post the response
+    return await twitter_client.post_tweet_response(
+        agent_profile=agent_profile,
+        evaluation=response_evaluation,
+        meme_threshold=MEME_RATING_THRESHOLD,
+        text_threshold=RESPONSE_RATING_THRESHOLD_MENTIONS,
+        conversation_id=mention.tagged_tweet.conversation_id,
+        reply_to_tweet_id=mention.tagged_tweet.id,
+        quote_tweet_id=original_tweet.id,
+    )

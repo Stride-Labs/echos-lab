@@ -9,7 +9,7 @@ from echos_lab.common.env import get_env
 from echos_lab.common.logger import logger
 from echos_lab.engines.personalities import profiles
 from echos_lab.slack.types import SlackHandler, SlackMessage
-from echos_lab.twitter import twitter_client
+from echos_lab.twitter import twitter_workflows
 
 
 async def _reply_to_tweet_callback(db: Session, message: SlackMessage, say: AsyncSay):
@@ -44,7 +44,7 @@ async def _reply_to_tweet_callback(db: Session, message: SlackMessage, say: Asyn
 
     # Generate the reply
     agent_profile = profiles.get_agent_profile()
-    response_tweet_id = await twitter_client.reply_to_tweet(agent_profile, tweet_id=int(tweet_id))
+    response_tweet_id = await twitter_workflows.reply_to_tweet(agent_profile, tweet_id=int(tweet_id))
     if not response_tweet_id:
         await say("Failed to post response. This is likely because the rating was too low", thread_ts=message.id)
         return

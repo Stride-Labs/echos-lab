@@ -4,6 +4,20 @@ from enum import Enum, auto
 from tweepy import Tweet
 
 from echos_lab.db import models
+from echos_lab.common.env import get_env, EnvironmentVariables as envs
+
+
+RESPONSE_RATING_THRESHOLD_MENTIONS = int(get_env(envs.RESPONSE_RATING_THRESHOLD_MENTIONS, 4))
+RESPONSE_RATING_THRESHOLD_FOLLOWERS = int(get_env(envs.RESPONSE_RATING_THRESHOLD_FOLLOWERS, 7))
+MEME_RATING_THRESHOLD = int(get_env(envs.MEME_RATING_THRESHOLD, 9))
+
+# Fields to include when fetching tweets:
+#  - author_id: user ID of the author of the tweet
+#  - created_at: datetime of when the tweet was created
+#  - conversation_id: if the tweet is a reply, this will be the root tweet
+#      otherwise, this will be the same as the tweet ID
+#  - referenced_tweets: includes refernce tweet during quote tweets or replies
+TWEET_FIELDS = ["author_id", "created_at", "conversation_id", "referenced_tweets"]
 
 
 class TweetExclusions(str, Enum):
