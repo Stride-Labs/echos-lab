@@ -7,7 +7,7 @@ from langchain_core.tools import tool
 from echos_lab.crypto_lib import create_token, crypto_connector
 from echos_lab.db import db_setup
 from echos_lab.engines import context_store, memes, post_maker, post_retriever
-from echos_lab.engines.personalities import profiles
+from echos_lab.engines import profiles
 from echos_lab.engines.prompts import TweetEvaluation
 from echos_lab.telegram import telegram_client
 from echos_lab.twitter import (

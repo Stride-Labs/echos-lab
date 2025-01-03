@@ -15,7 +15,7 @@ from echos_lab.common.env import DOT_ENV_PATH
 from echos_lab.db import models
 from echos_lab.db.db_setup import get_db
 from echos_lab.db.models import Base
-from echos_lab.engines.personalities.profiles import AgentProfile
+from echos_lab.engines.profiles import AgentProfile
 from echos_lab.engines.prompts import TweetEvaluation
 from echos_lab.twitter import twitter_client
 

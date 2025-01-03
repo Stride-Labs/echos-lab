@@ -11,7 +11,7 @@ from echos_lab.common.utils import with_db
 from echos_lab.db import db_connector
 from echos_lab.db.models import TweetType
 from echos_lab.engines import full_agent_tools, post_maker, prompts
-from echos_lab.engines.personalities.profiles import AgentProfile
+from echos_lab.engines.profiles import AgentProfile
 from echos_lab.engines.prompts import TweetEvaluation
 from echos_lab.twitter import (
     twitter_auth,

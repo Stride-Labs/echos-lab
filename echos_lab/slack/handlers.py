@@ -7,7 +7,7 @@ from echos_lab import main
 from echos_lab.common.env import EnvironmentVariables as envs
 from echos_lab.common.env import get_env
 from echos_lab.common.logger import logger
-from echos_lab.engines.personalities import profiles
+from echos_lab.engines import profiles
 from echos_lab.slack.types import SlackHandler, SlackMessage
 from echos_lab.twitter import twitter_workflows
 

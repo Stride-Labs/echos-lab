@@ -1,4 +1,4 @@
-from echos_lab.engines.personalities.profiles import LegacyAgentProfile
+from echos_lab.engines.profiles import LegacyAgentProfile
 
 
 def get_hal_tweet_prompt() -> str:

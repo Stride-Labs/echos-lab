@@ -12,7 +12,7 @@ from echos_lab.common.env import get_env_or_raise
 from echos_lab.common.logger import logger
 from echos_lab.db import db_connector, db_setup, models
 from echos_lab.engines import full_agent
-from echos_lab.engines.personalities import profiles
+from echos_lab.engines import profiles
 from echos_lab.twitter import twitter_helpers
 
 PARSE_MODE = "Markdown"

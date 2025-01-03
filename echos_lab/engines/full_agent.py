@@ -10,8 +10,8 @@ from echos_lab.common.env import EnvironmentVariables as envs
 from echos_lab.common.env import get_env, get_env_or_raise
 from echos_lab.crypto_lib import crypto_connector
 from echos_lab.engines import context_store, full_agent_tools, prompts
-from echos_lab.engines.personalities import profiles
-from echos_lab.engines.personalities.profiles import LegacyAgentProfile
+from echos_lab.engines import profiles
+from echos_lab.engines.profiles import LegacyAgentProfile
 
 BASE_MODEL = "claude-3-5-haiku-20241022"
 

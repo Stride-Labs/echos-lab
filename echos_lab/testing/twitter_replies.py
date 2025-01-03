@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import cast
 
 from echos_lab.engines import post_maker, prompts
-from echos_lab.engines.personalities import profiles
-from echos_lab.engines.personalities.profiles import AgentProfile
+from echos_lab.engines import profiles
+from echos_lab.engines.profiles import AgentProfile
 from echos_lab.engines.post_maker import TweetEvaluation
 from echos_lab.twitter import twitter_client
 from echos_lab.twitter.types import HydratedTweet, MentionType, TweetMention

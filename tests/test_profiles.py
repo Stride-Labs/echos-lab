@@ -1,7 +1,7 @@
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from echos_lab.engines.personalities.profiles import (
+from echos_lab.engines.profiles import (
     AgentProfile,
     AgentTone,
     FollowedAccount,

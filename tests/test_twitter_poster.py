@@ -11,7 +11,7 @@ from conftest import (
 )
 from tweepy.asynchronous import AsyncClient
 
-from echos_lab.engines.personalities.profiles import FollowedAccount
+from echos_lab.engines.profiles import FollowedAccount
 from echos_lab.twitter import twitter_poster
 from echos_lab.twitter.types import FollowerTweet, TweetMention
 
