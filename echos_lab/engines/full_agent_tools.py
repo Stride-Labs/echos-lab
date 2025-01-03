@@ -4,7 +4,7 @@ from typing import List
 
 from langchain_core.tools import tool
 
-from echos_lab.crypto_lib import create_token, crypto_connector
+from echos_lab.crypto import create_token, crypto_connector
 from echos_lab.db import db_setup
 from echos_lab.engines import context_store, memes, post_maker, post_retriever, profiles
 from echos_lab.engines.prompts import TweetEvaluation

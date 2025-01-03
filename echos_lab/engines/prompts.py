@@ -9,7 +9,7 @@ from langchain.prompts import PromptTemplate
 from langchain.prompts.chat import ChatPromptTemplate
 
 from echos_lab.common import utils
-from echos_lab.crypto_lib import crypto_connector
+from echos_lab.crypto import crypto_connector
 from echos_lab.db import models
 from echos_lab.engines.agent_context import AgentContext
 from echos_lab.engines.profiles import AgentProfile, LegacyAgentProfile

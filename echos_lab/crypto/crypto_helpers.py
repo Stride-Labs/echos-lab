@@ -9,7 +9,7 @@ from web3.types import TxParams, TxReceipt
 from echos_lab.common.env import ECHOS_HOME_DIRECTORY
 from echos_lab.common.env import EnvironmentVariables as envs
 from echos_lab.common.env import get_env
-from echos_lab.crypto_lib import abis
+from echos_lab.crypto import abis
 
 # w3 ETH Account Config
 ACCOUNT_PATH = Path(get_env(envs.CRYPTO_ACCOUNT_PATH, ECHOS_HOME_DIRECTORY / "account.json"))

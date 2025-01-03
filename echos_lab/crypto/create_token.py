@@ -2,9 +2,9 @@ import time
 
 from eth_account.signers.local import LocalAccount
 
-from echos_lab.crypto_lib import abis
-from echos_lab.crypto_lib import crypto_helpers as ch
-from echos_lab.crypto_lib import query_balances
+from echos_lab.crypto import abis
+from echos_lab.crypto import crypto_helpers as ch
+from echos_lab.crypto import query_balances
 from echos_lab.engines import images
 from echos_lab.engines.profiles import LegacyAgentProfile
 

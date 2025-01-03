@@ -1,7 +1,7 @@
 from typing import Dict, List
 
-import echos_lab.crypto_lib.crypto_helpers as ch
-from echos_lab.crypto_lib import goldsky, uniswap_pricing
+import echos_lab.crypto.crypto_helpers as ch
+from echos_lab.crypto import goldsky, uniswap_pricing
 
 
 def get_erc20_balance(address, token_address) -> int:
