@@ -9,7 +9,7 @@ from echos_lab.db.migrations import json_to_postgres
 from echos_lab.telegram import telegram_groups
 from echos_lab.testing import scratch as scratchpad
 from echos_lab.testing import twitter_replies as testing_twitter_replies
-from echos_lab.twitter import auth, twitter_connector, twitter_helpers
+from echos_lab.twitter import auth, twitter_browser, twitter_helpers
 
 
 @click.group()
@@ -34,7 +34,7 @@ def db():
 @click.option("--no-headless", is_flag=True, default=False, help="Run driver in visible mode instead of headless")
 def twitter_login(no_headless: bool):
     """Login to twitter if cookies are nonexistent or stale"""
-    twitter_connector.login_to_twitter(headless=not no_headless)
+    twitter_browser.login_to_twitter(headless=not no_headless)
 
 
 @cli.command("clear-cookies")

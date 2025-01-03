@@ -16,7 +16,7 @@ from echos_lab.slack.client import SlackClient
 from echos_lab.telegram import telegram_client
 from echos_lab.twitter import (
     twitter_client,
-    twitter_connector,
+    twitter_browser,
     twitter_pipeline,
     twitter_workflows,
 )
@@ -69,7 +69,7 @@ async def run_twitter_flow(login: bool):
     agent_profile = await setup_legacy_app()
 
     if login:
-        twitter_connector.login_to_twitter()
+        twitter_browser.login_to_twitter()
 
     individual_telegram_chat_id = int(get_env_or_raise(envs.TELEGRAM_INDIVIDUAL_CHAT_ID))
     await full_agent.twitter_flow(agent_profile.twitter_handle, individual_telegram_chat_id)
@@ -200,7 +200,7 @@ async def start_bot(login: bool):
     """
     # Login to twitter if specified
     if login:
-        twitter_connector.login_to_twitter()
+        twitter_browser.login_to_twitter()
 
     # Initialize database and accounts
     agent_profile = await setup_legacy_app()

@@ -17,7 +17,7 @@ from echos_lab.engines.prompts import TweetEvaluation
 from echos_lab.telegram import telegram_client
 from echos_lab.twitter import (
     twitter_client,
-    twitter_connector,
+    twitter_browser,
     twitter_helpers,
     twitter_pipeline,
 )
@@ -177,8 +177,8 @@ async def send_quote_tweet(tweet_content: str, tweet_id: str, user_name: str) ->
 
 
 async def get_twitter_feed_raw(new_posts_only: bool, include_id=True, notifications_only=False) -> str:
-    account = twitter_connector.get_twitter_account()
-    scraper = twitter_connector.get_twitter_scraper()
+    account = twitter_browser.get_twitter_account()
+    scraper = twitter_browser.get_twitter_scraper()
 
     # get recent tweets
     notif_context_tuple = await post_retriever.fetch_notification_context(
@@ -260,7 +260,7 @@ async def get_twitter_post(post_id: str) -> str:
     Returns:
     - str: A detailed text description of the post and surrounding conversation
     """
-    scraper = twitter_connector.get_twitter_scraper()
+    scraper = twitter_browser.get_twitter_scraper()
     for _ in range(3):
         try:
             formatted_text = await post_retriever.format_conversation_for_llm(
@@ -289,7 +289,7 @@ async def read_twitter_user_posts(username: str) -> str:
     Returns:
     - str: A text block containing the most recent tweets for the specified username
     """
-    twitter_posts = await twitter_connector.get_tweets_from_username(username)
+    twitter_posts = await twitter_browser.get_tweets_from_username(username)
     return twitter_posts
 
 
@@ -306,7 +306,7 @@ def like_twitter_post(post_id: str) -> bool:
     Returns:
     - bool: True if the post was successfully liked, False otherwise
     """
-    account = twitter_connector.get_twitter_account()
+    account = twitter_browser.get_twitter_account()
     out = account.like(int(post_id))
     try:
         if out['data']['favorite_tweet'] == 'Done':
@@ -329,8 +329,8 @@ async def follow_twitter_user(username: str) -> bool:
     Returns:
     - bool: True if the user was successfully followed, False otherwise
     """
-    account = twitter_connector.get_twitter_account()
-    target = await twitter_connector.get_user_id_from_username(username=username)
+    account = twitter_browser.get_twitter_account()
+    target = await twitter_browser.get_user_id_from_username(username=username)
     if target:
         out = account.follow(target)
         print(out)
