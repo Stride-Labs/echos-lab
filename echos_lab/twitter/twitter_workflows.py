@@ -79,7 +79,6 @@ async def run_reply_guy_followers_cycle(db: Session, agent_profile: AgentProfile
     await twitter_poster.reply_to_followers(agent_profile=agent_profile, tweets=tweets)
 
 
-@with_db
 async def reply_to_tweet(agent_profile: AgentProfile, tweet_id: int) -> int | None:
     """
     Generates and posts a reply guy response to a specific tweet

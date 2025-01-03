@@ -44,7 +44,7 @@ async def _reply_to_tweet_callback(db: Session, message: SlackMessage, say: Asyn
 
     # Generate the reply
     agent_profile = profiles.get_agent_profile()
-    response_tweet_id = await twitter_workflows.reply_to_tweet(agent_profile, tweet_id=int(tweet_id))
+    response_tweet_id = await twitter_workflows.reply_to_tweet(agent_profile=agent_profile, tweet_id=int(tweet_id))
     if not response_tweet_id:
         await say("Failed to post response. This is likely because the rating was too low", thread_ts=message.id)
         return
