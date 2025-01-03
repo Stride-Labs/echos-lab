@@ -1,6 +1,6 @@
 # Deploying an Echo
 
-This guide walks you through deploying your own Echo bot. Echo bots are AI-powered agents, with a custom personality, that can interact on Twitter. You can use Echo bots to promote your own projects, automatically answer community questions, or create an engaging social media presence or twin.
+This guide walks you through deploying your own Echo bot. Echo's are AI-powered agents, with a custom personality, that can interact on Twitter. You can use Echo's to promote your own projects, automatically answer community questions, or create an engaging social media presence or twin.
 
 ## Overview
 
@@ -14,11 +14,11 @@ In this tutorial, you will:
 
 Before starting, ensure you have:
 
-- Python 3.11.x installed (the standard here at Stride Labs)
-- Conda package manager installed
-- A Twitter/X account for your bot
+- Python 3.11.x installed
+- Miniconda package manager installed
+- A Twitter/X account for your agent
 
-## Part 1: Local Installation
+## Local Installation
 
 1. Create and activate a new conda environment:
    ```bash
@@ -44,7 +44,7 @@ Before starting, ensure you have:
    echos --help
    ```
 
-## Part 2: Credentials and Environment
+## Credentials and Environment
 
 1. Create you `.env` file from the template:
 
@@ -52,16 +52,18 @@ Before starting, ensure you have:
    cp .env.reply-guy.example .env
    ```
 
-2. Follow [Credentials](https://github.com/Stride-Labs/echos-lab/blob/main/docs/credentials.md) to create credentials for:
+2. Add your agent's name under `AGENT_NAME`
 
-   - Twitter: for reading and posting tweets
-   - Anthropic: for generating responses and other LLM orchestration
-   - ImgFlip: for generating meme images
-   - (Optional) Slack: for triggering subtweets or forcing responses through slack
+3. Follow the relevant sections in the [Credentials Guide](https://github.com/Stride-Labs/echos-lab/blob/main/docs/credentials.md) to create credentials for:
 
-3. Add the relevant tokens to the `.env` file
+   - **Twitter**: for reading and posting tweets
+   - **Anthropic**: for generating responses and other LLM orchestration
+   - **ImgFlip**: for generating meme images
+   - **Slack** (Optional): for triggering subtweets or forcing responses through slack
 
-## Part 3: Agent Profile
+4. Add the relevant tokens to the `.env` file
+
+## Agent Profile
 
 1. Create a new profile using the example template
 
@@ -71,7 +73,7 @@ Before starting, ensure you have:
 
 2. Open the agent profile at `~/.echos/{agent-name}.yaml` from your preferred editor and update the personality to your desired specifications.
 
-## Part 4: Local Deployment
+## Local Deployment
 
 Start the reply guy with:
 
