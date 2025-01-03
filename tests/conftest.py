@@ -57,7 +57,7 @@ def clear_prod_env(monkeypatch: pytest.MonkeyPatch):
 def mock_client():
     """Fixture to provide a mock tweepy client"""
     client = AsyncMock(spec=AsyncClient)
-    with patch("echos_lab.twitter.twitter_client.get_tweepy_async_client", return_value=client):
+    with patch("echos_lab.twitter.twitter_auth.get_tweepy_async_client", return_value=client):
         yield client
 
 

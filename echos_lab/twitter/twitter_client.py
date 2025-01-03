@@ -5,11 +5,9 @@ from typing import Tuple, cast
 
 import requests
 from sqlalchemy.orm import Session
-from tweepy import API, OAuth1UserHandler, Response, Tweet, User
-from tweepy.asynchronous import AsyncClient
+from tweepy import Response, Tweet, User
 
-from echos_lab.common.env import EnvironmentVariables as envs
-from echos_lab.common.env import get_env, get_env_or_raise
+from echos_lab.common.env import get_env
 from echos_lab.common.logger import logger
 from echos_lab.common.utils import with_db
 from echos_lab.db import db_connector
@@ -17,7 +15,7 @@ from echos_lab.db.models import TweetType
 from echos_lab.engines import full_agent_tools, post_maker, prompts
 from echos_lab.engines.personalities.profiles import AgentProfile
 from echos_lab.engines.prompts import TweetEvaluation
-from echos_lab.twitter import twitter_pipeline
+from echos_lab.twitter import twitter_pipeline, twitter_auth
 from echos_lab.twitter.types import (
     FollowerTweet,
     HydratedTweet,
@@ -47,59 +45,13 @@ FOLLOWER_SKIP_REPLY_THRESHOLD = 0.5
 #  - referenced_tweets: includes refernce tweet during quote tweets or replies
 TWEET_FIELDS = ["author_id", "created_at", "conversation_id", "referenced_tweets"]
 
-# Module level singleton to store tweepy client
-_tweepy_async_client: AsyncClient | None = None
-_tweepy_oauth1_client: API | None = None
-
-
-def get_tweepy_async_client():
-    """
-    Singleton to get or create the tweepy client
-    """
-    consumer_key = get_env_or_raise(envs.TWITTER_CONSUMER_KEY)
-    consumer_secret = get_env_or_raise(envs.TWITTER_CONSUMER_SECRET)
-    access_token = get_env_or_raise(envs.TWITTER_ACCESS_TOKEN)
-    access_token_secret = get_env_or_raise(envs.TWITTER_ACCESS_TOKEN_SECRET)
-    bearer_token = get_env_or_raise(envs.TWITTER_BEARER_TOKEN)
-
-    global _tweepy_async_client
-
-    if not _tweepy_async_client:
-        _tweepy_async_client = AsyncClient(
-            consumer_key=consumer_key,
-            consumer_secret=consumer_secret,
-            access_token=access_token,
-            access_token_secret=access_token_secret,
-            bearer_token=bearer_token,
-            wait_on_rate_limit=True,
-        )
-    return _tweepy_async_client
-
-
-def get_tweepy_oauth1_client():
-    """
-    Creates a new Tweepy API instance
-    """
-    consumer_key = get_env_or_raise(envs.TWITTER_CONSUMER_KEY)
-    consumer_secret = get_env_or_raise(envs.TWITTER_CONSUMER_SECRET)
-    access_token = get_env_or_raise(envs.TWITTER_ACCESS_TOKEN)
-    access_token_secret = get_env_or_raise(envs.TWITTER_ACCESS_TOKEN_SECRET)
-
-    global _tweepy_oauth1_client
-
-    if not _tweepy_oauth1_client:
-        auth = OAuth1UserHandler(consumer_key, consumer_secret, access_token, access_token_secret)
-        _tweepy_oauth1_client = API(auth)
-
-    return _tweepy_oauth1_client
-
 
 async def get_user_id_from_username(username: str) -> int | None:
     """
     Grabs the user ID from a username using tweepy
     Returns None if the username does not exist
     """
-    client = get_tweepy_async_client()
+    client = twitter_auth.get_tweepy_async_client()
     response = await client.get_user(username=username)
     response = cast(Response, response)
 
@@ -115,7 +67,7 @@ async def get_username_from_user_id(user_id: int) -> str | None:
     Grabs the user name from a user ID using tweepy
     Returns None if the user ID does not exist
     """
-    client = get_tweepy_async_client()
+    client = twitter_auth.get_tweepy_async_client()
     response = await client.get_user(id=user_id)
     response = cast(Response, response)
 
@@ -131,7 +83,7 @@ async def get_tweet_from_tweet_id(tweet_id: int) -> Tweet | None:
     Fetches a tweet from the tweet ID
     Returns None if the tweet does not exist
     """
-    client = get_tweepy_async_client()
+    client = twitter_auth.get_tweepy_async_client()
     response = await client.get_tweet(
         id=tweet_id,
         tweet_fields=TWEET_FIELDS,
@@ -169,7 +121,7 @@ async def get_tweets_from_user_id(
     Returns:
         Tuple of (list of tweets, newest tweet ID if any found)
     """
-    client = get_tweepy_async_client()
+    client = twitter_auth.get_tweepy_async_client()
 
     response = await client.get_users_tweets(
         id=user_id,
@@ -202,7 +154,7 @@ async def has_high_follower_count(user_id: int, threshold_num_followers: int = 1
     Returns:
         bool: True if the user has more followers than the threshold, False otherwise
     """
-    client = get_tweepy_async_client()
+    client = twitter_auth.get_tweepy_async_client()
 
     response = await client.get_user(id=user_id, user_fields="public_metrics")
     response = cast(Response, response)
@@ -325,7 +277,7 @@ async def get_user_mentions_batch(
         The tweets are enriched with any relevant parent tweets or usernames
         Returns None if no mentions are found
     """
-    client = get_tweepy_async_client()
+    client = twitter_auth.get_tweepy_async_client()
     response = await client.get_users_mentions(
         user_id,
         since_id=since_tweet_id,
@@ -483,7 +435,7 @@ async def post_tweet(
         in_reply_to_tweet_id and not conversation_id
     ), "If replying to a tweet, you must pass the conversation ID"
 
-    async_client = get_tweepy_async_client()
+    async_client = twitter_auth.get_tweepy_async_client()
 
     # TODO remove this temporary, hacky fix
     # This is so the agents don't tag each other
@@ -594,7 +546,7 @@ async def reply_to_tweet_with_image(
     logger.info(f"Image URL: {image_url}")
 
     # instantiate a new Tweepy API instance for media upload (requires v1 API)
-    oauth1_client = get_tweepy_oauth1_client()
+    oauth1_client = twitter_auth.get_tweepy_oauth1_client()
 
     # Download the image
     response = requests.get(image_url)
