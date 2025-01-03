@@ -144,6 +144,29 @@ async def get_username_from_user_id(db: Session, user_id: int) -> str | None:
     return None
 
 
+async def get_user_ids_from_usernames(db: Session, usernames: list[str]) -> dict[str, int]:
+    """
+    Given a list of usernames, returns a mapping of username -> user ID.
+    First tries DB lookup, then falls back to API query.
+
+    Args:
+        db: Database session
+        usernames: List of Twitter usernames to look up
+
+    Returns:
+        Dictionary of username -> Twitter user ID
+
+    Raises:
+        RuntimeError: If any username cannot be found in DB or via API
+    """
+    user_ids = {}
+    for username in usernames:
+        user_id = await require_user_id_from_username(db, username)
+        user_ids[username] = user_id
+
+    return user_ids
+
+
 async def require_user_id_from_username(db: Session, username: str) -> int:
     """
     Fetches the user ID from the username and raises an exception if not found

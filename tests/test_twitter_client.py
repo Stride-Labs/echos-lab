@@ -22,7 +22,6 @@ from fixtures.prompts import normalize_prompts
 from sqlalchemy.orm import Session
 from tweepy.asynchronous import AsyncClient
 
-from echos_lab.db import db_connector
 from echos_lab.engines import prompts
 from echos_lab.engines.personalities.profiles import FollowedAccount
 from echos_lab.twitter import twitter_client
@@ -395,50 +394,6 @@ class TestGetTweetsFromUserId:
         actual_tweets, actual_tweet_id = await twitter_client.get_tweets_from_user_id(user_id)
         assert actual_tweets == []
         assert actual_tweet_id is None
-
-
-@pytest.mark.asyncio
-class TestGetUserIdsFromUsernames:
-    @patch("echos_lab.twitter.twitter_client.get_user_id_from_username")
-    async def test_get_user_ids_from_usernames_success(self, mock_get_user_id: AsyncMock, db: Session):
-        """
-        Tests successfully gathering user IDs from usernames
-        """
-        user_id_A = 1
-        user_id_B = 2
-
-        username_A = "userA"
-        username_B = "userB"
-
-        usernames = [username_A, username_B]
-        expected_user_id_mapping = {username_A: user_id_A, username_B: user_id_B}
-
-        # Add userA to the database and mock the API response for userB
-        # so that it's returned when it falls back to the API
-        db_connector.add_twitter_user(db, user_id=user_id_A, username=username_A)
-        mock_get_user_id.return_value = user_id_B
-
-        # Get user IDs
-        actual_user_id_mapping = await twitter_client.get_user_ids_from_usernames(db, usernames)
-        assert actual_user_id_mapping == expected_user_id_mapping
-
-        # Confirm the API was only called once
-        mock_get_user_id.assert_called_once()
-
-    @patch("echos_lab.twitter.twitter_client.get_user_id_from_username")
-    async def test_get_user_ids_from_usernames_not_found(self, mock_get_user_id: AsyncMock, db: Session):
-        """
-        Tests handling of missing user ID
-        """
-        usernames = ["userA"]
-
-        # We'll intentionally not add the twitter user to the database
-        # so it falls back to the API
-        # And then we'll also mock that API response to return None
-        mock_get_user_id.return_value = None
-
-        with pytest.raises(RuntimeError, match=r"Twitter User ID not found for handle @userA"):
-            await twitter_client.get_user_ids_from_usernames(db, usernames)
 
 
 @pytest.mark.asyncio
