@@ -9,7 +9,7 @@ from openpipe import OpenAI
 
 from echos_lab.common.env import EnvironmentVariables as envs
 from echos_lab.common.env import get_env_or_raise
-from echos_lab.crypto_lib import crypto_connector
+from echos_lab.crypto import crypto_connector
 from echos_lab.db import models
 from echos_lab.engines import agent_context, legacy, prompts
 from echos_lab.engines.profiles import AgentProfile, LegacyAgentProfile

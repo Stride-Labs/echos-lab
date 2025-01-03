@@ -7,7 +7,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from echos_lab.common.env import EnvironmentVariables as envs
 from echos_lab.common.env import get_env_or_raise
 from echos_lab.common.logger import logger
-from echos_lab.crypto_lib import crypto_connector
+from echos_lab.crypto import crypto_connector
 from echos_lab.db import db_connector, db_setup
 from echos_lab.engines import full_agent, images, post_maker, profiles
 from echos_lab.engines.profiles import AgentProfile, LegacyAgentProfile

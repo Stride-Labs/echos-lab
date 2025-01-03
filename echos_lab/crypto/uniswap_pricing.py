@@ -4,8 +4,8 @@ from functools import lru_cache
 from web3 import Web3
 from web3.contract import Contract
 
-from echos_lab.crypto_lib import abis
-from echos_lab.crypto_lib import crypto_helpers as ch
+from echos_lab.crypto import abis
+from echos_lab.crypto import crypto_helpers as ch
 
 NULL_ADDRESS = "0x0000000000000000000000000000000000000000"
 

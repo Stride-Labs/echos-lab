@@ -3,7 +3,7 @@ import asyncio
 import click
 
 from echos_lab import main
-from echos_lab.crypto_lib import crypto_connector
+from echos_lab.crypto import crypto_connector
 from echos_lab.db import db_setup
 from echos_lab.db.migrations import json_to_postgres
 from echos_lab.telegram import telegram_groups

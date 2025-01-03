@@ -6,8 +6,8 @@ from eth_account import Account
 from eth_account.signers.local import LocalAccount
 from millify import millify
 
-from echos_lab.crypto_lib import crypto_helpers as ch
-from echos_lab.crypto_lib import query_balances, trade_tokens
+from echos_lab.crypto import crypto_helpers as ch
+from echos_lab.crypto import query_balances, trade_tokens
 
 
 @lru_cache

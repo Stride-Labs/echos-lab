@@ -3,9 +3,9 @@ from typing import cast
 from eth_account.signers.local import LocalAccount
 from web3.types import Nonce, Wei
 
-from echos_lab.crypto_lib import abis
-from echos_lab.crypto_lib import crypto_helpers as ch
-from echos_lab.crypto_lib import goldsky
+from echos_lab.crypto import abis
+from echos_lab.crypto import crypto_helpers as ch
+from echos_lab.crypto import goldsky
 
 
 def trade_pregrad_token(
