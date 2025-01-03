@@ -6,7 +6,7 @@ echos_lab/*env
 **/*.session
 echos_lab/engines/images/*
 echos_lab/engines/tweet_data/*.jsonl
-echos_lab/crypto_lib/*.json
+echos_lab/crypto/*.json
 infinite_backrooms/logs/**/*.txt
 /db/
 
