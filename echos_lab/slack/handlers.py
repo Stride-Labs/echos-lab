@@ -23,7 +23,7 @@ async def _reply_to_tweet_callback(db: Session, message: SlackMessage, say: Asyn
     help_command = "```\n!reply {agent-name} {tweet-link}\nEx: !reply vito https://x.com/someuser/status/12345\n```\n"
 
     # Confirm the message was sent with a valid format
-    pattern = re.compile(r"^!reply (\w+) <https://x\.com/\w+/status/(\d+)>")
+    pattern = re.compile(r"^!reply (\w+) <https://x\.com/[a-zA-Z0-9_]+/status/(\d+)>")
     match = re.match(pattern, message.text)
     if match is None:
         response = f"Invalid `!reply` command, should be format:\n{help_command}"
