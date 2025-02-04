@@ -87,6 +87,7 @@ class EnvironmentVariables:
     # LLM config
     OPENPIPE_API_KEY = "OPENPIPE_API_KEY"
     ANTHROPIC_API_KEY = "ANTHROPIC_API_KEY"
+    DEEPSEEK_API_KEY = "DEEPSEEK_API_KEY"
 
     # Image generation config
     REPLICATE_API_TOKEN = "REPLICATE_API_TOKEN"

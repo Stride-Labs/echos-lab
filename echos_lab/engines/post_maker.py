@@ -5,6 +5,8 @@ from functools import lru_cache
 import tweepy
 from fuzzywuzzy import fuzz
 from langchain_anthropic import ChatAnthropic
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_deepseek import ChatDeepSeek
 from openpipe import OpenAI
 
 from echos_lab.common.env import EnvironmentVariables as envs
@@ -26,24 +28,32 @@ if not os.path.exists(TWEET_DATA_PATH):
 
 
 # Module level executor singleton storage
-_reply_guy_llm: ChatAnthropic | None = None
+_reply_guy_llm: BaseChatModel | None = None
 _open_ai_client: OpenAI | None = None
 
 
-def get_reply_guy_llm(model_name: str) -> ChatAnthropic:
+def get_reply_guy_llm(model_name: str) -> BaseChatModel:
     """
     Singleton to get or create a new Claude LLM client
     """
     global _reply_guy_llm
     if _reply_guy_llm is None:
         get_env_or_raise(envs.ANTHROPIC_API_KEY)
-        _reply_guy_llm = ChatAnthropic(
-            model_name=model_name,
-            timeout=120,
-            max_retries=2,
-            stop=None,
-            verbose=True,
-        )
+        if "deepseek" in model_name:
+            _reply_guy_llm = ChatDeepSeek(
+                model=model_name,
+                timeout=120,
+                max_retries=2,
+                verbose=True,
+            )
+        else:
+            _reply_guy_llm = ChatAnthropic(
+                model_name=model_name,
+                timeout=120,
+                max_retries=2,
+                stop=None,
+                verbose=True,
+            )
     return _reply_guy_llm
 
 

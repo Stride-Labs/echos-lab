@@ -30,6 +30,13 @@
 - Click `Create Key` to generate a new API key
 - The key starting with `sk-ant-` is your `ANTHROPIC_API_KEY`
 
+### DeepSeek
+
+- Go to https://console.deepseek.com/ and sign in
+- Once logged in, navigate to the API Keys section
+- Click `Create Key` to generate a new API key
+- The key starting with `sk-` is your `DEEPSEEK_API_KEY`
+
 ### ImgFlip
 
 - Go to https://imgflip.com/ and click Signup

@@ -5,6 +5,7 @@ from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain.tools import BaseTool, StructuredTool
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import SystemMessage
+from langchain_deepseek import ChatDeepSeek
 
 from echos_lab.common.env import EnvironmentVariables as envs
 from echos_lab.common.env import get_env, get_env_or_raise
@@ -12,7 +13,7 @@ from echos_lab.crypto import crypto_connector
 from echos_lab.engines import context_store, full_agent_tools, profiles, prompts
 from echos_lab.engines.profiles import LegacyAgentProfile
 
-BASE_MODEL = "claude-3-5-haiku-20241022"
+BASE_MODEL = "deepseek-chat"
 
 
 if get_env(envs.LANGCHAIN_TRACING_V2, "false").lower() == "true":
@@ -55,14 +56,23 @@ def get_agent_executor() -> AgentExecutor:
         base_prompt = prompts.get_full_agent_prompt(agent_profile)
         tools = get_tools(agent_profile)
 
-        base_llm = ChatAnthropic(
-            model_name=BASE_MODEL,
-            temperature=0.9,
-            timeout=None,
-            max_retries=2,
-            stop=None,
-            verbose=True,
-        )
+        if "deepseek" in BASE_MODEL:
+            base_llm = ChatDeepSeek(
+                model=BASE_MODEL,
+                temperature=0.9,
+                timeout=None,
+                max_retries=2,
+                verbose=True,
+            )
+        else:
+            base_llm = ChatAnthropic(
+                model_name=BASE_MODEL,
+                temperature=0.9,
+                timeout=None,
+                max_retries=2,
+                stop=None,
+                verbose=True,
+            )
 
         agent = create_tool_calling_agent(
             llm=base_llm,
