@@ -28,7 +28,7 @@ dependencies = [
     "selenium==4.26.1",
     "undetected-chromedriver==3.5.5",
     "web3==7.4.0",
-    "openpipe==4.34.0",
+    "openpipe==4.45.0",
     "gql==3.5.0",
     "fuzzywuzzy==0.18.0",
     "millify==0.1.1",
@@ -43,7 +43,8 @@ dependencies = [
     "oauthlib==3.2.2",
     "pyyaml==6.0.2",
     "psycopg2-binary==2.9.10",
-    "slack_bolt==1.21.3"
+    "slack_bolt==1.21.3",
+    "langchain-deepseek-official==0.1.0"
 ]
 
 [project.optional-dependencies]
