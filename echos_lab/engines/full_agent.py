@@ -4,6 +4,7 @@ import os
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain.tools import BaseTool, StructuredTool
 from langchain_anthropic import ChatAnthropic
+from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import SystemMessage
 from langchain_deepseek import ChatDeepSeek
 
@@ -56,6 +57,8 @@ def get_agent_executor() -> AgentExecutor:
         base_prompt = prompts.get_full_agent_prompt(agent_profile)
         tools = get_tools(agent_profile)
 
+        # set base_llm to type BaseChatModel
+        base_llm: BaseChatModel | None = None
         if "deepseek" in BASE_MODEL:
             base_llm = ChatDeepSeek(
                 model=BASE_MODEL,

@@ -21,7 +21,7 @@ from echos_lab.twitter import (
     twitter_workflows,
 )
 
-TWITTER_FLOW_LOOP_FREQUENCY = 120  # minutes
+TWITTER_FLOW_LOOP_FREQUENCY = 60 * 24  # minutes
 REPLY_GUY_LOOP_FREQUENCY = 1  # minutes
 
 
