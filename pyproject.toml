@@ -28,7 +28,7 @@ dependencies = [
     "selenium==4.26.1",
     "undetected-chromedriver==3.5.5",
     "web3==7.4.0",
-    "openpipe==4.34.0",
+    "openpipe==4.45.0",
     "gql==3.5.0",
     "fuzzywuzzy==0.18.0",
     "millify==0.1.1",
